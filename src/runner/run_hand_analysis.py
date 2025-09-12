@@ -4,7 +4,7 @@ import os
 from neurotask.tmt.tmt_analyzer import TMTAnalyzer
 
 from src import config
-from src.config import DATA_DIR
+from src.config import DATA_DIR, EXPERIMENT_FILE_NAME
 from src.mapper.datapruebas.datapruebas_mapper import DatapruebasTMTMapper
 
 
@@ -36,7 +36,7 @@ def run_analysis_with_configuration_parameters(output_path):
         raise ValueError("`correct_targets_minimum` must be set when `cut_criteria` is 'MINIMUM_TARGETS'.")
 
     experiment_origin = "datapruebas"
-    dataset_dir = os.path.join(DATA_DIR, "raw/tmt/" + experiment_origin + "/subjects/datapruebas_7_9_2024.json")
+    dataset_dir = os.path.join(DATA_DIR, "raw/tmt/" + experiment_origin + "/subjects/" + EXPERIMENT_FILE_NAME)
     analysis = log_and_run_tmt_analysis(
         dataset_path=dataset_dir,
         output_path=output_path,

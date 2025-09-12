@@ -7,6 +7,7 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 
 DATASET_DIR = os.path.join(BASE_DIR, "data")
 
+EXPERIMENT_FILE_NAME = "datapruebas_12_9_2025.json"
 
 HAND_ANALYSIS_FOLDER = os.path.join(DATA_DIR, "hand_analysis")
 
