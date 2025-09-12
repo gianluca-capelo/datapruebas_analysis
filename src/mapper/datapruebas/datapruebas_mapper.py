@@ -2,7 +2,6 @@ import logging
 from datetime import datetime
 
 import pandas as pd
-import pyxations as pyx
 from neurotask.tmt.mapper.mapper import TMTMapper
 from neurotask.tmt.metrics.distance_calculation import calculate_distance
 from neurotask.tmt.model.tmt_model import *

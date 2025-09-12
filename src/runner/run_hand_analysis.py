@@ -1,9 +1,10 @@
 import logging
-from pathlib import Path
+import os
 
 from neurotask.tmt.tmt_analyzer import TMTAnalyzer
 
 from src import config
+from src.config import DATA_DIR
 from src.mapper.datapruebas.datapruebas_mapper import DatapruebasTMTMapper
 
 
@@ -26,8 +27,7 @@ def log_and_run_tmt_analysis(dataset_path, output_path, correct_targets_minimum,
     return hand_analysis
 
 
-def run_analysis_with_configuration_parameters(base_dir):
-    # Cargamos el análisis de TMT
+def run_analysis_with_configuration_parameters(output_path):
     threshold = config.CORRECT_THRESHOLD
     cut_criteria = config.CUT_CRITERIA
     points = config.CONSECUTIVE_POINTS
@@ -36,17 +36,16 @@ def run_analysis_with_configuration_parameters(base_dir):
         raise ValueError("`correct_targets_minimum` must be set when `cut_criteria` is 'MINIMUM_TARGETS'.")
 
     experiment_origin = "datapruebas"
-    dataset_dir = base_dir / Path("data") / "raw" / "tmt" / experiment_origin / 'subjects' / 'datapruebas_7_9_2024.json'
+    dataset_dir = os.path.join(DATA_DIR, "raw/tmt/" + experiment_origin + "/subjects/datapruebas_7_9_2024.json")
     analysis = log_and_run_tmt_analysis(
         dataset_path=dataset_dir,
-        output_path=base_dir,
+        output_path=output_path,
         correct_targets_minimum=threshold,
         consecutive_points=points,
         cut_criteria=cut_criteria,
         calculate_crosses=config.CALCULATE_CROSSES
     )
 
-    # Obtenemos el DataFrame de métricas
     df_metrics = analysis.get_metrics_dataframe()
     print("Metrics DataFrame:")
     print(df_metrics.head())
@@ -57,8 +56,5 @@ def run_analysis_with_configuration_parameters(base_dir):
     return analysis
 
 
-
-
 if __name__ == "__main__":
-    run_analysis_with_configuration_parameters('/home/gianluca/Research/datapruebas_analysis')
-
+    run_analysis_with_configuration_parameters('/home/gianluca/Research/datapruebas_analysis/results')
