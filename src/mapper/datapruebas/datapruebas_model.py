@@ -1,9 +1,9 @@
 import json
 from typing import List, Optional, Tuple, Union
 
-from attr import dataclass
 from pydantic import BaseModel, Field, model_validator
 from pydantic import field_validator
+
 
 class Target(BaseModel):
     content: str
@@ -42,7 +42,7 @@ class SubjectData(BaseModel):
     accuracy: Optional[int] = None
     rt: Optional[float] = None
 
-    #TODO GIAN: Charlar con gus un poco mas sobre que son estos 3 campos
+    # TODO GIAN: Charlar con gus un poco mas sobre que son estos 3 campos
     X_click: Optional[int] = None
     Y_click: Optional[int] = None
     T_click: Optional[int] = None

@@ -16,8 +16,8 @@ class DatapruebasTMTMapper(TMTMapper):
         # raise ValueError("El archivo de metadata es requerido para el mapper DatapruebasTMTMapper")
 
         experiment = self._read_datapruebas_output(data_path)
-        #tmt_metadata = pd.read_csv(metadata_path)
-        #tmt_metadata = tmt_metadata.drop_duplicates(subset=['Id sujeto'], keep='first')
+        # tmt_metadata = pd.read_csv(metadata_path)
+        # tmt_metadata = tmt_metadata.drop_duplicates(subset=['Id sujeto'], keep='first')
 
         return self.map_to_experiment(experiment, None)
 
@@ -39,7 +39,7 @@ class DatapruebasTMTMapper(TMTMapper):
                     continue
                 try:
 
-                    #subject_metadata = metadata_df[metadata_df['Id sujeto'] == experiment.subject_id]
+                    # subject_metadata = metadata_df[metadata_df['Id sujeto'] == experiment.subject_id]
                     subjects[experiment.subject_id] = self.map_to_subject(experiment.records[0], None)
 
                 except IndexError:
@@ -86,7 +86,7 @@ class DatapruebasTMTMapper(TMTMapper):
             testing_trials=testing_trials,
             target_radius=self._extract_first_valid(subject_data_list, 'radius'),
             canvas_size=self._extract_first_valid(subject_data_list, 'canvas_size'),
-            personal_info= self.mock_personal_info(), #self._extract_subject_personal_info(subject_metadata),
+            personal_info=self.mock_personal_info(),  # self._extract_subject_personal_info(subject_metadata),
             session_context=self._extract_session_context(subject_data_list)
         )
 

@@ -5,28 +5,25 @@ import os
 from typing import Optional, Dict, Tuple, List
 
 import pandas as pd
-
-from src.mapper.datapruebas.datapruebas_model import SubjectData
-
 from neurotask.tmt.mapper.mapper import TMTMapper
-
-from src.mapper.neuropruebas.neuropruebas_model import NeuropruebasTarget
 from neurotask.tmt.model.tmt_model import TMTExperiment, TMTSubject, CursorInfo, Coordinate, TMTTarget, TrialType, \
     TMTTrial, SubjectPersonalInformation, SessionContext
 
-
+from src.mapper.datapruebas.datapruebas_model import SubjectData
+from src.mapper.neuropruebas.neuropruebas_model import NeuropruebasTarget
 
 
 class NeuropruebasFormatDetectionException(Exception):
     pass
 
+
 class NeuropruebasTMTMapper(TMTMapper):
 
     def map(self, data_path: str, metadata_path: Optional[str] = None) -> TMTExperiment:
-        #if metadata_path is None:
-         #   raise ValueError("Metadata path is required for Neuropruebas data")
+        # if metadata_path is None:
+        #   raise ValueError("Metadata path is required for Neuropruebas data")
 
-        tmt_metadata = None#pd.read_csv(metadata_path, sep=';')
+        tmt_metadata = None  # pd.read_csv(metadata_path, sep=';')
 
         experiment = self._read_neuropruebas_output(data_path)
 
@@ -85,7 +82,7 @@ class NeuropruebasTMTMapper(TMTMapper):
         errors = []
         for subject_id, subject_data in neuropruebas_experiment.items():
             try:
-                subject_metadata = None# metadata_df[
+                subject_metadata = None  # metadata_df[
                 #     (metadata_df['id'] == subject_id) |
                 #     (metadata_df['email'] == subject_id)
                 #     ]
@@ -385,8 +382,8 @@ class NeuropruebasTMTMapper(TMTMapper):
 
         return SubjectPersonalInformation(
             birthdate=self._extract_birthdate(subject_metadata),
-            gender='Masculino', #if subject_metadata['genero'].iloc[0] == 'M' else 'Femenino',
-            education_level="Primario",#subject_metadata['nivel_educativo'].iloc[0],
+            gender='Masculino',  # if subject_metadata['genero'].iloc[0] == 'M' else 'Femenino',
+            education_level="Primario",  # subject_metadata['nivel_educativo'].iloc[0],
             nationality="subject_metadata['nacionalidad'].iloc[0]",
             residence_country="subject_metadata['pais_de_residencia'].iloc[0]",
             residence_region="NO TIENE (NEUROPRUEBAS)"
@@ -397,5 +394,5 @@ class NeuropruebasTMTMapper(TMTMapper):
         # This is done because the day and month of birth are not provided in the metadata of Neuropruebas.
 
         date = f"1990-01-01"
-        #birthdate = datetime.strptime(date, '%Y-%m-%d') #TODO GIAN ar
+        # birthdate = datetime.strptime(date, '%Y-%m-%d') #TODO GIAN ar
         return date

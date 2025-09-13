@@ -1,13 +1,13 @@
 import logging
 import os
 
+from neurotask.tmt.mapper.mapper import TMTMapper
 from neurotask.tmt.tmt_analyzer import TMTAnalyzer
 
 from src import config
 from src.config import DATA_DIR, EXPERIMENT_FILE_NAME
 from src.mapper.datapruebas.datapruebas_mapper import DatapruebasTMTMapper
 from src.mapper.neuropruebas.neuropruebas_mapper import NeuropruebasTMTMapper
-from neurotask.tmt.mapper.mapper import TMTMapper
 
 
 def log_and_run_tmt_analysis(dataset_path, output_path, correct_targets_minimum, consecutive_points, cut_criteria,
