@@ -1,0 +1,401 @@
+import glob
+import json
+import logging
+import os
+from typing import Optional, Dict, Tuple, List
+
+import pandas as pd
+
+from src.mapper.datapruebas.datapruebas_model import SubjectData
+
+from neurotask.tmt.mapper.mapper import TMTMapper
+
+from src.mapper.neuropruebas.neuropruebas_model import NeuropruebasTarget
+from neurotask.tmt.model.tmt_model import TMTExperiment, TMTSubject, CursorInfo, Coordinate, TMTTarget, TrialType, \
+    TMTTrial, SubjectPersonalInformation, SessionContext
+
+
+
+
+class NeuropruebasFormatDetectionException(Exception):
+    pass
+
+class NeuropruebasTMTMapper(TMTMapper):
+
+    def map(self, data_path: str, metadata_path: Optional[str] = None) -> TMTExperiment:
+        #if metadata_path is None:
+         #   raise ValueError("Metadata path is required for Neuropruebas data")
+
+        tmt_metadata = None#pd.read_csv(metadata_path, sep=';')
+
+        experiment = self._read_neuropruebas_output(data_path)
+
+        return self.map_to_experiment(experiment, tmt_metadata)
+
+    def _read_neuropruebas_output(self, folder_path) -> Dict[str, pd.DataFrame]:
+        """
+        Input:
+               folder_path: Path de la carpeta donde se encuentran los datos a cargar
+
+        Output:
+               dictionary: Diccionario de la forma: {nombreDelSujeto: dataFrameConSusDatos}
+
+        """
+        dictionary = {}
+
+        for filename in glob.glob(os.path.join(folder_path, "*.csv")):
+            with open(filename, "r") as f:
+                nombre_de_archivo = f.name
+                nombre_de_archivo = nombre_de_archivo.split("/")[-1]
+                df = pd.read_csv(f.name, on_bad_lines="skip")
+
+                if "SSD" in list(df.columns):  # es sst
+                    df = df[df["trial_type"] == "custom-stop-signal-plugin"]
+
+                    df["rt"] = df["rt"].astype(float)
+                    df["raw_rt"] = df["raw_rt"].astype(float)
+                    df["onset_of_first_stimulus"] = df["onset_of_first_stimulus"].astype(
+                        float
+                    )
+                    df["onset_of_second_stimulus"] = df["onset_of_second_stimulus"].astype(
+                        float
+                    )
+                    df["SSD"] = df["SSD"].astype(float)
+                    df["trial_i"] = df["trial_i"].astype(int)
+                    df["block_i"] = df["block_i"].astype(int)
+
+                    df.to_csv(f.name)
+
+                if "hash" in list(df.columns):
+                    id_suj = df["hash"].iloc[0]
+                elif "id" in list(df.columns):
+                    id_suj = df["id"].iloc[0]
+                else:
+                    id_suj = nombre_de_archivo
+                dictionary[id_suj] = df
+
+            # renombro el archivo
+            if not id_suj.endswith(".csv"):
+                os.rename(filename, os.path.join(folder_path, f"{id_suj}.csv"))
+
+        return dictionary
+
+    def map_to_experiment(self, neuropruebas_experiment: dict, metadata_df: pd.DataFrame) -> TMTExperiment:
+        subjects = {}
+        errors = []
+        for subject_id, subject_data in neuropruebas_experiment.items():
+            try:
+                subject_metadata = None# metadata_df[
+                #     (metadata_df['id'] == subject_id) |
+                #     (metadata_df['email'] == subject_id)
+                #     ]
+                subjects[subject_id] = self.map_to_subject(subject_data, subject_metadata)
+            except:
+                logging.exception(f"Error processing experiment for subject {subject_id}")
+                errors.append(subject_id)
+                continue
+        if errors:
+            logging.warning(f"Errors found for subjects: {len(errors)}")
+
+        return TMTExperiment(subjects)
+
+    def map_to_subject(self, subject_data: pd.DataFrame, subject_metadata: pd.DataFrame) -> TMTSubject:
+
+        training_stimuli, testing_stimuli = self.get_stimuli(subject_data)
+        position_coordinates_for_every_trial, cursor_times_for_every_trial = self._extract_position_and_time_data(
+            subject_data)
+        first_click_cursor_info_for_every_trial = self.get_first_clicks_cursor_info(subject_data)
+
+        self._validate_trial_data(cursor_times_for_every_trial, first_click_cursor_info_for_every_trial,
+                                  position_coordinates_for_every_trial, testing_stimuli, training_stimuli)
+
+        training_trials = self.map_to_trials(
+            training_stimuli,
+            position_coordinates_for_every_trial[0:2],
+            cursor_times_for_every_trial[0:2],
+            first_click_cursor_info_for_every_trial[0:2]
+        )
+
+        testing_trials = self.map_to_trials(
+            testing_stimuli,
+            position_coordinates_for_every_trial[2:],
+            cursor_times_for_every_trial[2:],
+            first_click_cursor_info_for_every_trial[2:]
+        )
+
+        if len(testing_trials) == 0:
+            raise ValueError("Subject must have at least one testing trial")
+
+        return TMTSubject(
+            training_trials=training_trials,
+            testing_trials=testing_trials,
+            target_radius=self._extract_first_valid_numeric(subject_data, 'radius'),
+            canvas_size=self._extract_first_valid_numeric(subject_data, 'canvas_size'),
+            personal_info=self._extract_subject_personal_info(subject_metadata),
+            session_context=(  # TODO GIAN: no lo tenemos?
+                SessionContext(
+                    device='PC',
+                    hand='Derecha',
+                    device_config='Mouse',
+                    alcohol_drugs='No',
+                    treatment='No',
+                    pad_usage='No',
+                    final_comment='No'
+                )
+            )
+        )
+
+    def _validate_trial_data(self, cursor_times_for_every_trial, first_click_cursor_info_for_every_trial,
+                             position_coordinates_for_every_trial, testing_stimuli, training_stimuli):
+
+        valid_length = (
+                len(position_coordinates_for_every_trial) == len(first_click_cursor_info_for_every_trial) and
+                len(first_click_cursor_info_for_every_trial) == len(cursor_times_for_every_trial) and
+                len(cursor_times_for_every_trial) == len(training_stimuli) + len(testing_stimuli)
+        )
+
+        if not valid_length:
+            raise ValueError(
+                "Position coordinates, first click cursor info and cursor times and total time must have the same length "
+            )
+
+    def get_stimuli(self, df):
+
+        columns_of_interest = [str(i) for i in range(20)]
+
+        if len(set(columns_of_interest).intersection(df.columns)) > 0:
+            # Comentario Gus: Solo los de nacho tenian columnas separadas `columns_of_interest`
+            return self.process_columns_of_interest(df, columns_of_interest)
+        else:
+            return self.process_training_test_stimuli(df)
+
+    def process_columns_of_interest(self, df, columns_of_interest):
+        stimulus = []
+        # Filter DataFrame to only include columns of interest
+        df_items_pos = df[columns_of_interest]
+
+        # Filter rows where the first column contains '{'
+        df_items_pos_cleaned = df_items_pos[df_items_pos["0"].str.contains("{", na=False)]
+
+        # Transpose DataFrame
+        df_items_pos_cleaned_transposed = df_items_pos_cleaned.T
+
+        for column in df_items_pos_cleaned_transposed.columns:
+            # Extract column data
+            item_position_list = df_items_pos_cleaned_transposed[column].values
+
+            trial_stimuli = []
+            for item in item_position_list:
+                try:
+                    item_data = json.loads(item)
+                    x = item_data["x"]
+                    y = item_data["y"]
+                    content = item_data["content"]
+                    trial_stimuli.append(NeuropruebasTarget(content=content, x=x, y=y))
+
+                except (json.JSONDecodeError, KeyError):
+                    continue
+
+            stimulus.append(trial_stimuli)
+
+        return stimulus[0:2], stimulus[2:]
+
+    def process_training_test_stimuli(self, df):
+        training_stimulus = [stim["stimulus"] for stim in json.loads(df["train_stimuli"][1])]
+        test_stimulus = [stim["stimulus"] for stim in json.loads(df["test_stimuli"][1])]
+
+        processed_training_stimulus = [
+            [NeuropruebasTarget(content=target["content"], x=target["x"], y=target["y"]) for target in trial]
+            for trial in training_stimulus
+        ]
+        processed_test_stimulus = [
+            [NeuropruebasTarget(content=target["content"], x=target["x"], y=target["y"]) for target in trial]
+            for trial in test_stimulus
+        ]
+
+        return processed_training_stimulus, processed_test_stimulus
+
+    def _extract_position_and_time_data(
+            self, df: pd.DataFrame
+    ) -> Tuple[List[List[Tuple[float, float]]], List[List[int]]]:
+
+        is_valid_trial = self.determine_trial_validation(df)
+        trial_mouse_positions = self.get_trial_mouse_positions(df, is_valid_trial)
+        trial_cursor_times = self.get_trial_cursor_times(df, is_valid_trial)
+
+        position_coordinates = [[eval(i) for i in t] for t in trial_mouse_positions]
+
+        return position_coordinates, trial_cursor_times
+
+    def determine_trial_validation(self, df):
+
+        position_has_quotes = (df["position"] == '"').any()
+        cursor_time_has_quotes = (df["cursor_time"] == '"').any()
+        position_has_nan = df["position"].isna().any()
+        cursor_time_has_nan = df["cursor_time"].isna().any()
+
+        quotes_means_no_trial = position_has_quotes and cursor_time_has_quotes
+        nan_means_no_trial = position_has_nan and cursor_time_has_nan
+
+        if quotes_means_no_trial:
+            return lambda trial_data: isinstance(trial_data, str) and trial_data != '"'
+        if nan_means_no_trial:
+            return lambda trial_data: isinstance(trial_data, str)
+        else:
+            raise NeuropruebasFormatDetectionException(
+                f"Unable to determine the format of the data. "
+                f"position_has_nan: {position_has_nan}, cursor_time_has_nan: {cursor_time_has_nan}, "
+                f"position_has_quotes: {position_has_quotes}, cursor_time_has_quotes: {cursor_time_has_quotes}"
+            )
+
+    def get_trial_mouse_positions(self, df, is_valid_trial):
+        return self.get_trial_data(df, "position", is_valid_trial)
+
+    def get_trial_cursor_times(self, df, is_valid_trial):
+        return self.get_trial_data(df, "cursor_time", is_valid_trial)
+
+    def get_trial_data(self, df, column_name, is_valid_trial):
+
+        raw_mouse_data = [trial_data for trial_data in df[column_name] if is_valid_trial(trial_data)]
+
+        return [eval(t) for t in raw_mouse_data]
+
+    def get_first_clicks_cursor_info(self, df):
+
+        df_tmt = df[df["trial_type"] == "trail-making-test"]
+
+        # TODO GIAN: por el momento usamos este preguntar a Gus con cual ir
+        try:
+            x_y_clicked_position = [
+                eval(i) for i in df_tmt["x_y_clicked_position"] if isinstance(i, str)
+            ]
+
+            first_clicks = [
+                CursorInfo(position=Coordinate(x=x, y=y), time=t) for (x, y, t) in x_y_clicked_position
+            ]
+
+            return first_clicks
+
+        except:
+            # First click position
+
+            df_tmt["X_click"] = pd.to_numeric(df["X_click"], errors="coerce")
+            df_tmt["Y_click"] = pd.to_numeric(df["Y_click"], errors="coerce")
+            df_tmt["T_click"] = pd.to_numeric(df["T_click"], errors="coerce")
+
+            x_first_clicks = df_tmt["X_click"].tolist()
+            y_first_clicks = df_tmt["Y_click"].tolist()
+            t_first_clicks = df_tmt["T_click"].tolist()
+
+            first_clicks_second_option = [
+                CursorInfo(position=Coordinate(x=x, y=y), time=t) for x, y, t in
+                zip(x_first_clicks, y_first_clicks, t_first_clicks)
+            ]
+
+            return first_clicks_second_option
+
+    def map_to_trials(self, stimulus: Optional[List[List[NeuropruebasTarget]]],
+                      position_coordinates: List[List[Tuple[float, float]]],
+                      cursor_times: List[List[int]],
+                      first_clicks_info: List[CursorInfo]
+                      ) -> List[TMTTrial]:
+
+        if not stimulus:
+            return []
+
+        return [
+            self.map_to_trial(first_click, positions, times, stimuli, trial_id=f"NEUROPRUEBAS_{str(i)}",
+                              trial_order_of_appearance=i)
+            for i, (stimuli, positions, times, first_click) in
+            enumerate(zip(stimulus, position_coordinates, cursor_times, first_clicks_info))
+        ]
+
+    def _extract_position_and_click_and_time_data(self, subject_data_list: List[SubjectData]):
+        position_coordinates_for_every_trial = []
+        first_click_cursor_info_for_every_trial = []
+        cursor_time: List[List[int]] = []
+
+        for subject_data in subject_data_list:
+            if subject_data.position_coordinates is not None:
+                position_coordinates_for_every_trial.append(subject_data.position_coordinates)
+                x_y_clicked_position = subject_data.x_y_clicked_position
+                if x_y_clicked_position is not None:
+                    first_click_cursor_info_for_every_trial.append(CursorInfo(
+                        position=Coordinate(x=x_y_clicked_position[0], y=x_y_clicked_position[1]),
+                        time=x_y_clicked_position[2]
+                    ))
+                else:
+                    first_click_cursor_info_for_every_trial.append(None)
+                if subject_data.cursor_time is not None:
+                    cursor_time.append(subject_data.cursor_time)
+
+        return position_coordinates_for_every_trial, first_click_cursor_info_for_every_trial, cursor_time
+
+    def map_to_trial(self, first_click: CursorInfo, positions: List[Tuple[float, float]],
+                     times: List[int], stimuli: List[NeuropruebasTarget], trial_id: str,
+                     trial_order_of_appearance: int) -> TMTTrial:
+
+        self._validate_trial_positions_and_times(positions, times)
+
+        targets = [
+            TMTTarget(
+                content=target.content,
+                position=Coordinate(x=target.x, y=target.y)
+            ) for target in stimuli
+        ]
+
+        cursor_trail = [
+            CursorInfo(
+                position=Coordinate(x=pos[0], y=pos[1]),
+                time=time
+            ) for pos, time in zip(positions, times)
+        ]
+
+        trial = TMTTrial(
+            stimuli=targets,
+            cursor_trail=cursor_trail,
+            trial_type=self._resolve_trial_type(targets),
+            rt=times[-1] - times[0],
+            id=trial_id,
+            order_of_appearance=trial_order_of_appearance,
+            with_custom_start=True,
+            start=first_click
+        )
+
+        return trial
+
+    def _validate_trial_positions_and_times(self, positions, times):
+        if len(positions) == 0:
+            raise ValueError("Positions must not be empty")
+        if len(positions) != len(times):
+            raise ValueError("Positions and times must have the same length")
+
+    def _resolve_trial_type(self, targets: List[TMTTarget]) -> TrialType:
+        return TrialType.PART_B if targets[1].content == 'A' else TrialType.PART_A
+
+    def _extract_first_valid(self, df, column: str):
+        return df[column][df[column].notna()].values[0]
+
+    def _extract_first_valid_numeric(self, df, column: str):
+        df[column] = pd.to_numeric(df[column], errors="coerce")
+
+        return df[column][df[column].notna()].values[0]
+
+    def _extract_subject_personal_info(self, subject_metadata: pd.DataFrame) -> SubjectPersonalInformation:
+
+        return SubjectPersonalInformation(
+            birthdate=self._extract_birthdate(subject_metadata),
+            gender='Masculino', #if subject_metadata['genero'].iloc[0] == 'M' else 'Femenino',
+            education_level="Primario",#subject_metadata['nivel_educativo'].iloc[0],
+            nationality="subject_metadata['nacionalidad'].iloc[0]",
+            residence_country="subject_metadata['pais_de_residencia'].iloc[0]",
+            residence_region="NO TIENE (NEUROPRUEBAS)"
+        )
+
+    def _extract_birthdate(self, subject_metadata):
+        # Mocking the birthdate to the first day of the year using the year of birth.
+        # This is done because the day and month of birth are not provided in the metadata of Neuropruebas.
+
+        date = f"1990-01-01"
+        #birthdate = datetime.strptime(date, '%Y-%m-%d') #TODO GIAN ar
+        return date
