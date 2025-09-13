@@ -70,5 +70,5 @@ def run_analysis_with_configuration_parameters(output_path, experiment_origin):
 if __name__ == "__main__":
     run_analysis_with_configuration_parameters(
         '/home/gianluca/Research/datapruebas_analysis/results',
-        'neuropruebas'
+        'datapruebas'
     )
