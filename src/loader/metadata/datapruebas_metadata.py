@@ -15,6 +15,11 @@ def retrieve_metadata(metadata_path):
 
 def add_datapruebas_metadata(metrics_df):
     metadata_df = retrieve_metadata(DATAPRUEBAS_METADATA_PATH)
+
+    missing_subjects = set(metrics_df["subject_id"]) - set(metadata_df["Id sujeto"])
+    if missing_subjects:
+        raise ValueError(f"Los siguientes subject_id no están en metadata: {missing_subjects}")
+
     merged_df = pd.merge(metrics_df, metadata_df, left_on='subject_id', right_on='Id sujeto', how='inner')
 
     merged_df = merged_df.drop(columns=['Id sujeto', 'Id ejecucion', 'Estado'])
@@ -31,5 +36,3 @@ def add_datapruebas_metadata(metrics_df):
     merged_df = merged_df.rename(columns=column_renames)
 
     return merged_df
-
-
