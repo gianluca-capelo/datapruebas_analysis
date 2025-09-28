@@ -14,6 +14,10 @@ HAND_ANALYSIS_FOLDER = os.path.join(DATA_DIR, "hand_analysis")
 ANALYSIS_PATH = os.path.join(DATA_DIR, "hand_analysis", "analysis.csv")
 METADATA_CSV = os.path.join(DATA_DIR, "metadata", "metadata.csv")
 
+TMT_NEUROPRUEBAS_METRICS_PATH = os.path.join(DATA_DIR, "processed", "tmt", "neuropruebas", "metrics.csv")
+TMT_DATAPRUEBAS_METRICS_PATH = os.path.join(DATA_DIR, "processed", "tmt", "datapruebas", "metrics.csv")
+TMT_METRICS_PATH = os.path.join(DATA_DIR, "processed", "tmt", "metrics.csv")
+
 TRAIN_SET_PATH = os.path.join(DATA_DIR, "hand_analysis", "train_set.csv")
 EVAL_SET_PATH = os.path.join(DATA_DIR, "hand_analysis", "eval_set.csv")
 
@@ -28,7 +32,7 @@ FIGURES_DIR = os.path.join(BASE_DIR, "figures")
 RADIUS_HEIGHT = 0.0275
 
 # TMT parameters
-CORRECT_THRESHOLD = 8
-CONSECUTIVE_POINTS = 5
-CUT_CRITERIA = "MINIMUM_TARGETS"
+CORRECT_THRESHOLD = None  # 8
+CONSECUTIVE_POINTS = None  # 5
+CUT_CRITERIA = None  # "MINIMUM_TARGETS"
 CALCULATE_CROSSES = False

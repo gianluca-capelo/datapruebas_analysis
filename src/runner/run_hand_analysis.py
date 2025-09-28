@@ -49,7 +49,7 @@ def run_analysis_with_configuration_parameters(output_path, experiment_origin):
 
     analysis = log_and_run_tmt_analysis(
         dataset_path=dataset_dir,
-        output_path=os.path.join(output_path, experiment_origin),
+        output_path=os.path.join(output_path,"processed","tmt", experiment_origin),
         correct_targets_minimum=threshold,
         consecutive_points=points,
         cut_criteria=cut_criteria,
@@ -69,6 +69,6 @@ def run_analysis_with_configuration_parameters(output_path, experiment_origin):
 
 if __name__ == "__main__":
     run_analysis_with_configuration_parameters(
-        '/home/gianluca/Research/datapruebas_analysis/results',
+        '/home/gianluca/Research/datapruebas_analysis/data',
         'datapruebas'
     )

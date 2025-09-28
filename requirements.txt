@@ -1,0 +1,9 @@
+pandas==2.0.3
+numpy==1.24.4
+matplotlib==3.9.2
+seaborn==0.13.2
+scikit-learn==1.7.1
+
+#Not available in pip
+#neurotask==0.0.0
+#pyxations==0.1.0
