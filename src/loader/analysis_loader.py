@@ -8,9 +8,7 @@ import pandas as pd
 
 from src import config as config_file
 from src.config import RANDOM_STATE
-from src.dataset_split.eval_train_split import split_subjectwise_evaluation_set_stratified
-from src.loader.load import concat_dataframes
-from src.loader.load_last_split import get_run_configuration
+from src.loader.df_utils import concat_dataframes
 from src.runner.run_hand_analysis import run_analysis_with_configuration_parameters
 
 
@@ -35,16 +33,17 @@ def load_analysis(random_state: int,
 
     # 2) Execute analysis
     metrics_df = compute_hand_metrics(run_dir)
-    #TODO GIAN: metrics_df = add_metadata_to_metrics(metrics_df)
+    # TODO GIAN: metrics_df = add_metadata_to_metrics(metrics_df)
 
     # 3) Split the dataset if required
     train_subject_ids, eval_subject_ids = get_split_ids(eval_size, old_split_config_date, random_state, split,
                                                         metrics_df)
 
     # 4) Save results and metadata
-    save_path = save_results(metrics_df, run_dir, timestamp, random_state, eval_size, train_subject_ids, eval_subject_ids,
-                 split,
-                 old_split_config_date)
+    save_path = save_results(metrics_df, run_dir, timestamp, random_state, eval_size, train_subject_ids,
+                             eval_subject_ids,
+                             split,
+                             old_split_config_date)
 
     return metrics_df, save_path
 
@@ -93,7 +92,7 @@ def get_split_ids(eval_size, old_split_config_date, random_state, split, valid_m
         # Use all subjects for training
         train_subject_ids = valid_metrics_df['subject_id'].unique().tolist()
         eval_subject_ids = []
-    return train_subject_ids, eval_subject_ids,
+    return train_subject_ids, eval_subject_ids
 
 
 def create_run_folder(timestamp: str) -> Path:
