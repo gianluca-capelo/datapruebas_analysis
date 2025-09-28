@@ -9,6 +9,8 @@ import pandas as pd
 from src import config as config_file
 from src.config import RANDOM_STATE
 from src.loader.df_utils import concat_dataframes
+from src.loader.metadata.datapruebas_metadata import add_datapruebas_metadata
+from src.loader.metadata.neuropruebas_metadata import add_neuropruebas_metadata
 from src.runner.run_hand_analysis import run_analysis_with_configuration_parameters
 
 
@@ -66,7 +68,7 @@ def compute_neuropruebas_hand_metrics(run_dir, experiment_origin):
         metrics_df = add_neuropruebas_metadata(metrics_df)
     elif experiment_origin == "datapruebas":
         metrics_df = add_datapruebas_metadata(metrics_df)
-    else :
+    else:
         raise ValueError(f"Unknown experiment origin: {experiment_origin}")
     return metrics_df
 
