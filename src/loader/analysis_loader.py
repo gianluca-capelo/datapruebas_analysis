@@ -62,6 +62,12 @@ def compute_hand_metrics(run_dir):
 def compute_neuropruebas_hand_metrics(run_dir, experiment_origin):
     analysis = run_analysis_with_configuration_parameters(run_dir, experiment_origin)
     metrics_df = analysis.get_metrics_dataframe()
+    if experiment_origin == "neuropruebas":
+        metrics_df = add_neuropruebas_metadata(metrics_df)
+    elif experiment_origin == "datapruebas":
+        metrics_df = add_datapruebas_metadata(metrics_df)
+    else :
+        raise ValueError(f"Unknown experiment origin: {experiment_origin}")
     return metrics_df
 
 
