@@ -20,8 +20,8 @@ def load_analysis_by_run_dir(run_dir: Path) -> Tuple[pd.DataFrame, pd.DataFrame]
     eval_ids = run_config.get("eval_subject_ids")
     if train_ids is None or eval_ids is None:
         raise KeyError("`train_subject_ids` or `eval_subject_ids` not found in configuration.json")
-    train_ids = [int(i) for i in train_ids]
-    eval_ids = [int(i) for i in eval_ids]
+    train_ids = [str(i) for i in train_ids]
+    eval_ids = [str(i) for i in eval_ids]
 
     # read full CSV
     data_path = run_dir / "analysis.csv"

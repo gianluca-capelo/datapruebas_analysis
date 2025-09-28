@@ -3,15 +3,16 @@ import pandas as pd
 import seaborn as sns
 
 from src.config import FIGURES_DIR
-from src.hand_analysis.loader.load_last_split import load_analysis_by_date
+from src.loader.load_last_split import load_analysis_by_date
 
 
 def plot_loss_matrix(data, ax=None, title_suffix=''):
     subjects = data['subject_id'].unique()
     total_subjects = len(subjects)
+    print('Total subjects: {} for {}'.format(total_subjects, title_suffix if title_suffix else 'ALL'))
     number_of_trials = len(data['trial_order_of_appearance'].unique())
     number_of_trials_range = range(1, number_of_trials + 1)
-    target_touches_range = range(0, 16)
+    target_touches_range = range(0, 21)
 
     # build subject_counts
     subject_counts = pd.DataFrame(index=subjects, columns=target_touches_range, dtype=int)
@@ -48,7 +49,7 @@ def plot_loss_matrix(data, ax=None, title_suffix=''):
 
 
 if __name__ == "__main__":
-    train_set, _ = load_analysis_by_date("2025-08-14_18-57-05")
+    train_set, _ = load_analysis_by_date("2025-09-28_15-21-13")
     fig, axes = plt.subplots(1, 2, figsize=(16, 7), sharey=True)
 
     plot_loss_matrix(
