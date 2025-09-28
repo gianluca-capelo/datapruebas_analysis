@@ -34,7 +34,6 @@ def split_subjectwise_evaluation_set_stratified(
     train_subjects, eval_subjects = train_test_split(
         subject_group_df[subject_col],
         test_size=eval_size,
-        stratify=subject_group_df[group_col],
         random_state=random_state
     )
 

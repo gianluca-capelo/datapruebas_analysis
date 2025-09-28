@@ -68,24 +68,26 @@ def compute_neuropruebas_hand_metrics(run_dir, experiment_origin):
 
 def get_split_ids(eval_size, old_split_config_date, random_state, split, valid_metrics_df):
     if split:
-        train_subject_ids, eval_subject_ids = split_subjectwise_evaluation_set_stratified(
-            valid_metrics_df,
-            eval_size=eval_size,
-            random_state=random_state
-        )
-        logging.info(
-            "Completed data split with test_size=%s, random_state=%s",
-            eval_size, random_state
-        )
+        raise ValueError("Dataset splitting is currently disabled.")
+        # train_subject_ids, eval_subject_ids = split_subjectwise_evaluation_set_stratified(
+        #     valid_metrics_df,
+        #     eval_size=eval_size,
+        #     random_state=random_state
+        # )
+        # logging.info(
+        #     "Completed data split with test_size=%s, random_state=%s",
+        #     eval_size, random_state
+        # )
     elif old_split_config_date:
-        logging.info(
-            "Loading old split configuration from %s",
-            old_split_config_date
-        )
-        old_split_config_dir = Path(config_file.HAND_ANALYSIS_FOLDER) / old_split_config_date
-        old_configuration = get_run_configuration(old_split_config_dir)
-        train_subject_ids = old_configuration.get("train_subject_ids")
-        eval_subject_ids = old_configuration.get("eval_subject_ids")
+        raise ValueError("Loading old split configuration is currently disabled.")
+        # logging.info(
+        #     "Loading old split configuration from %s",
+        #     old_split_config_date
+        # )
+        # old_split_config_dir = Path(config_file.HAND_ANALYSIS_FOLDER) / old_split_config_date
+        # old_configuration = get_run_configuration(old_split_config_dir)
+        # train_subject_ids = old_configuration.get("train_subject_ids")
+        # eval_subject_ids = old_configuration.get("eval_subject_ids")
     else:
         logging.info("No split performed, using all subjects for training.")
         # Use all subjects for training
