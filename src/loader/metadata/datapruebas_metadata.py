@@ -24,13 +24,14 @@ def add_datapruebas_metadata(metrics_df):
 
     merged_df = merged_df.drop(columns=['Id sujeto', 'Id ejecucion', 'Estado'])
 
+    # Removemos estas columnas ya que no estan en Neuropruebas
+    merged_df = merged_df.drop(columns=['Pais de residencia', 'Región de residencia'])
+
     column_renames = {
         "Fecha de nacimiento": "birth_date",
         "Género": "gender",
         "Nivel educativo": "education_level",
-        "Nacionalidad": "nationality",
-        "Pais de residencia": "country_of_residence",
-        "Región de residencia": "region_of_residence"
+        "Nacionalidad": "nationality"
     }
 
     merged_df = merged_df.rename(columns=column_renames)

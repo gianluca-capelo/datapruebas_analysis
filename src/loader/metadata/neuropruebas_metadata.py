@@ -33,14 +33,14 @@ def get_metadata_for_subject(subject_id, metadata_df):
     # Preparar columnas para comparación
     df = metadata_df.copy()
     df["_id_str"] = df["id"].astype(str).str.strip().str.lower()
-    df["_mail_str"] = df["email"].astype(str).str.strip().str.lower()
+    df["_email_str"] = df["email"].astype(str).str.strip().str.lower()
 
     # Filtrar por id
     matched = df[df["_id_str"] == subject_id]
 
     # Si no encontró por id, buscar por mail
     if matched.empty:
-        matched = df[df["_mail_str"] == subject_id]
+        matched = df[df["_email_str"] == subject_id]
 
     # Si hay más de una fila, lanzar error
     if len(matched) > 1:
@@ -50,7 +50,7 @@ def get_metadata_for_subject(subject_id, metadata_df):
         raise ValueError(f"Ninguna fila encontrada para subject_id: {subject_id}")
 
     # Convertir la fila a diccionario y devolver (sin las columnas auxiliares)
-    result = matched.iloc[0].drop(labels=["_id_str", "_mail_str"]).to_dict()
+    result = matched.iloc[0].drop(labels=["_id_str", "_email_str"]).to_dict()
     return result
 
 
@@ -69,8 +69,8 @@ def add_neuropruebas_metadata(metrics_df: pd.DataFrame, subject_col: str = "subj
         metadata = get_metadata_for_subject(subject_id, metadata_df)
 
         # Agregar metadata como nuevas columnas
-        for key, value in metadata.items():
-            subject_rows[key] = value
+        for metadata_value in ["año_de_nacimiento", "genero", "nivel_educativo", "nacionalidad"]:
+            subject_rows[metadata_value] = metadata[metadata_value]
 
         # Agregar al listado
         df_list.append(subject_rows)
@@ -78,4 +78,23 @@ def add_neuropruebas_metadata(metrics_df: pd.DataFrame, subject_col: str = "subj
     # Concatenar todos los resultados
     result_df = pd.concat(df_list, ignore_index=True)
 
+    column_renames = {
+        "año_de_nacimiento": "birth_date",
+        "genero": "gender",
+        "nivel_educativo": "education_level",
+        "nacionalidad": "nationality"
+    }
+    
+    result_df = result_df.rename(columns=column_renames)
+
     return result_df
+
+
+def main():
+    metrics = pd.read_csv(
+        '/home/gianluca/Research/datapruebas_analysis/data/hand_analysis/2025-09-28_16-00-13/processed/tmt/neuropruebas/metrics.csv')
+    nuevo_df = add_neuropruebas_metadata(metrics, subject_col='subject_id')
+
+
+if __name__ == "__main__":
+    main()
