@@ -59,7 +59,7 @@ def get_metadata_for_subject(subject_id, metadata_df):
     return result
 
 
-def add_neuropruebas_metadata(metrics_df: pd.DataFrame, subject_col: str = "subject_id", ) -> tuple[
+def add_neuropruebas_metadata(metrics_df: pd.DataFrame, subject_col: str = "subject_id") -> tuple[
     DataFrame, set[Any]]:
     metadata_errors = set()
 
