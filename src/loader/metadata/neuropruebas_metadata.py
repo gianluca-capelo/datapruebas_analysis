@@ -1,4 +1,8 @@
+import logging
+from typing import Any
+
 import pandas as pd
+from pandas import DataFrame
 
 from src.config import NEUROPRUEBAS_METADATA_PATH
 
@@ -51,10 +55,15 @@ def get_metadata_for_subject(subject_id, metadata_df):
 
     # Convertir la fila a diccionario y devolver (sin las columnas auxiliares)
     result = matched.iloc[0].drop(labels=["_id_str", "_email_str"]).to_dict()
+
     return result
 
 
-def add_neuropruebas_metadata(metrics_df: pd.DataFrame, subject_col: str = "subject_id", ) -> pd.DataFrame:
+def add_neuropruebas_metadata(metrics_df: pd.DataFrame, subject_col: str = "subject_id", ) -> tuple[
+    DataFrame, set[Any], set[Any]]:
+    metadata_errors = set()
+    metadata_value_errors = set()
+
     metadata_df = retrieve_metadata(NEUROPRUEBAS_METADATA_PATH)
 
     # Crear una lista para guardar todos los DataFrames parciales con metadata
@@ -66,11 +75,26 @@ def add_neuropruebas_metadata(metrics_df: pd.DataFrame, subject_col: str = "subj
         subject_rows = metrics_df[metrics_df[subject_col] == subject_id].copy()
 
         # Obtener metadata (diccionario)
-        metadata = get_metadata_for_subject(subject_id, metadata_df)
+        try:
+            metadata = get_metadata_for_subject(subject_id, metadata_df)
+        except:
+            # TODO GIAN: por el momento si no encuentra metadata, poner None
+            logging.warning(f"No se encontró metadata para subject_id: {subject_id}")
+            metadata = {"email": None, "id": None, "año_de_nacimiento": None, "genero": None}
+            metadata_errors.add(subject_id)
 
         # Agregar metadata como nuevas columnas
         for metadata_value in ["año_de_nacimiento", "genero", "nivel_educativo", "nacionalidad"]:
-            subject_rows[metadata_value] = metadata[metadata_value]
+            try:
+                subject_rows[metadata_value] = metadata[metadata_value]
+            except KeyError:
+                metadata_value_errors.add(subject_id)
+                # TODO GIAN: por el momento si no encuentra la columna, poner None
+                logging.warning(f"No se encontró la columna '{metadata_value}' en la metadata para subject_id")
+                if metadata_value == "nivel_educativo" or metadata_value == "nacionalidad":
+                    subject_rows[metadata_value] = None
+                else:
+                    raise KeyError(f"La columna '{metadata_value}' no se encuentra en la metadata.")
 
         # Agregar al listado
         df_list.append(subject_rows)
@@ -84,17 +108,22 @@ def add_neuropruebas_metadata(metrics_df: pd.DataFrame, subject_col: str = "subj
         "nivel_educativo": "education_level",
         "nacionalidad": "nationality"
     }
-    
+
     result_df = result_df.rename(columns=column_renames)
 
-    return result_df
+    return result_df, metadata_errors, metadata_value_errors
 
 
 def main():
     metrics = pd.read_csv(
         '/home/gianluca/Research/datapruebas_analysis/data/hand_analysis/2025-09-28_16-00-13/processed/tmt/neuropruebas/metrics.csv')
-    nuevo_df = add_neuropruebas_metadata(metrics, subject_col='subject_id')
+    nuevo_df, metadata_errors, metadata_value_errors = add_neuropruebas_metadata(metrics, subject_col='subject_id')
 
+    print("Cantidad de suject_id en metrics:", len(metrics['subject_id'].unique()))
+    print("Cantidad de metadata errors (subject_id not found):", len(metadata_errors))
+    print("Metadata errors (subject_id not found):", metadata_errors)
+    print("Cantidad de metadata value errors (missing columns):", len(metadata_value_errors))
+    print("Metadata value errors (missing columns):", metadata_value_errors)
 
 if __name__ == "__main__":
     main()
