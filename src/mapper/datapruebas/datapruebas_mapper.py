@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 
 import pandas as pd
 from neurotask.tmt.mapper.mapper import TMTMapper
@@ -12,14 +11,10 @@ from src.mapper.datapruebas.datapruebas_model import *
 class DatapruebasTMTMapper(TMTMapper):
 
     def map(self, data_path: str, metadata_path: Optional[str] = None) -> TMTExperiment:
-        # if metadata_path is None:
-        # raise ValueError("El archivo de metadata es requerido para el mapper DatapruebasTMTMapper")
 
         experiment = self._read_datapruebas_output(data_path)
-        # tmt_metadata = pd.read_csv(metadata_path)
-        # tmt_metadata = tmt_metadata.drop_duplicates(subset=['Id sujeto'], keep='first')
 
-        return self.map_to_experiment(experiment, None)
+        return self.map_to_experiment(experiment)
 
     def _read_datapruebas_output(self, file_path: str) -> ExperimentRunCollection:
         with open(file_path, "r") as file:
@@ -28,8 +23,7 @@ class DatapruebasTMTMapper(TMTMapper):
         tmt_experiment_data = ExperimentRunCollection(**data)
         return tmt_experiment_data
 
-    def map_to_experiment(self, datapruebas_experiment: ExperimentRunCollection,
-                          metadata_df: pd.DataFrame) -> TMTExperiment:
+    def map_to_experiment(self, datapruebas_experiment: ExperimentRunCollection) -> TMTExperiment:
         subjects = {}
         for experiment in datapruebas_experiment.experiments:
             if self._has_finished_status(experiment):
@@ -86,8 +80,9 @@ class DatapruebasTMTMapper(TMTMapper):
             testing_trials=testing_trials,
             target_radius=self._extract_first_valid(subject_data_list, 'radius'),
             canvas_size=self._extract_first_valid(subject_data_list, 'canvas_size'),
-            personal_info=self.mock_personal_info(),  # self._extract_subject_personal_info(subject_metadata),
-            session_context=self._extract_session_context(subject_data_list)
+            personal_info=None,
+            session_context=None,
+            session_data=self._extract_session_data(subject_data_list)
         )
 
     def _validate_trial_data(self, cursor_times_for_every_trial, first_click_cursor_info_for_every_trial,
@@ -182,42 +177,18 @@ class DatapruebasTMTMapper(TMTMapper):
     def _extract_first_valid(self, data_list: List[SubjectData], attribute: str):
         return next((getattr(data, attribute) for data in data_list if getattr(data, attribute) is not None), None)
 
-    # def _extract_subject_personal_info(self, subject_metadata: pd.DataFrame) -> SubjectPersonalInformation:
-    #
-    #     date = subject_metadata['Fecha de nacimiento'].iloc[0]
-    #     birthdate = datetime.strptime(date, '%Y-%m-%d')
-    #
-    #     return SubjectPersonalInformation(
-    #         birthdate=birthdate,
-    #         gender=subject_metadata['Género'].iloc[0],
-    #         education_level=subject_metadata['Nivel educativo'].iloc[0],
-    #         nationality=subject_metadata['Nacionalidad'].iloc[0],
-    #         residence_country=subject_metadata['Pais de residencia'].iloc[0],
-    #         residence_region=subject_metadata['Región de residencia'].iloc[0]
-    #     )
-
-    def mock_personal_info(self):
-        return SubjectPersonalInformation(
-            birthdate=datetime(1990, 1, 1),
-            gender="M",
-            education_level="University",
-            nationality="Argentine",
-            residence_country="Argentina",
-            residence_region="Buenos Aires"
-        )
-
-    def _extract_session_context(self, subject_data_list: List[SubjectData]) -> Optional[SessionContext]:
-        session_context = None
+    def _extract_session_data(self, subject_data_list: List[SubjectData]) -> Optional[dict]:
+        session_data = None
         for subject_data in subject_data_list:
             if isinstance(subject_data.response, ResponseDetail):
-                session_context = SessionContext(
-                    device=subject_data.response.dispositivo,
-                    hand=subject_data.response.mano,
-                    device_config=subject_data.response.dispositivo_config,
-                    alcohol_drugs=subject_data.response.alcohol_drogas,
-                    treatment=subject_data.response.tratamiento,
-                    pad_usage=subject_data.response.usoDelPad,
-                    final_comment=subject_data.response.comentarioFinal
-                )
+                session_data = {
+                    "device": subject_data.response.dispositivo,
+                    "hand": subject_data.response.mano,
+                    "device_config": subject_data.response.dispositivo_config,
+                    "alcohol_drugs": subject_data.response.alcohol_drogas,
+                    "treatment": subject_data.response.tratamiento,
+                    "pad_usage": subject_data.response.usoDelPad,
+                    "final_comment": subject_data.response.comentarioFinal
+                }
                 break
-        return session_context
+        return session_data
