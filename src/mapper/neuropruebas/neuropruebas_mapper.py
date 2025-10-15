@@ -25,11 +25,22 @@ class NeuropruebasTMTMapper(TMTMapper):
 
         tmt_metadata = None  # pd.read_csv(metadata_path, sep=';')
 
-        experiment = self._read_neuropruebas_output(data_path)
+        experiment, session_data_dict = self._read_neuropruebas_output(data_path)
 
         return self.map_to_experiment(experiment, tmt_metadata)
 
-    def _read_neuropruebas_output(self, folder_path) -> Dict[str, pd.DataFrame]:
+    def _read_neuropruebas_survey(self, df):
+        survey_rows = df[df['trial_type'] == 'survey-html-form']['response']
+        if len(survey_rows) == 0:
+            return None
+        for row in survey_rows:
+            data = eval(row)
+            #completar esto
+
+
+
+
+    def _read_neuropruebas_output(self, folder_path) -> Tuple[Dict[str, pd.DataFrame], Dict[str, dict]]:
         """
         Input:
                folder_path: Path de la carpeta donde se encuentran los datos a cargar
@@ -39,12 +50,14 @@ class NeuropruebasTMTMapper(TMTMapper):
 
         """
         dictionary = {}
+        session_data_dict = {}
 
         for filename in glob.glob(os.path.join(folder_path, "*.csv")):
             with open(filename, "r") as f:
                 nombre_de_archivo = f.name
                 nombre_de_archivo = nombre_de_archivo.split("/")[-1]
                 df = pd.read_csv(f.name, on_bad_lines="skip")
+                session_data = self._read_neuropruebas_survey(df.copy())
 
                 if "SSD" in list(df.columns):  # es sst
                     df = df[df["trial_type"] == "custom-stop-signal-plugin"]
@@ -70,12 +83,13 @@ class NeuropruebasTMTMapper(TMTMapper):
                 else:
                     id_suj = nombre_de_archivo
                 dictionary[id_suj] = df
+                session_data_dict[id_suj] = session_data
 
             # renombro el archivo
             if not id_suj.endswith(".csv"):
                 os.rename(filename, os.path.join(folder_path, f"{id_suj}.csv"))
 
-        return dictionary
+        return dictionary, session_data_dict
 
     def map_to_experiment(self, neuropruebas_experiment: dict, metadata_df: pd.DataFrame) -> TMTExperiment:
         subjects = {}
