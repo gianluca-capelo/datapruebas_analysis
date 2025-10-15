@@ -27,20 +27,25 @@ class NeuropruebasTMTMapper(TMTMapper):
 
         experiment, session_data_dict = self._read_neuropruebas_output(data_path)
 
-        return self.map_to_experiment(experiment, tmt_metadata)
+        return self.map_to_experiment(experiment, session_data_dict)
 
     def _read_neuropruebas_survey(self, df):
-        survey_rows = df[df['trial_type'] == 'survey-html-form']['response']
+        survey_rows = df[df['trial_type'] == 'survey-html-form']
+        if 'responses' not in survey_rows.columns:
+            return None
+
+        responses = survey_rows['responses']
+
         if len(survey_rows) == 0:
             return None
+
         survey_response = {}
+
         for row in survey_rows:
             data = eval(row)
             survey_response.update(data)
 
         return survey_response
-
-
 
     def _read_neuropruebas_output(self, folder_path) -> Tuple[Dict[str, pd.DataFrame], Dict[str, dict]]:
         """
@@ -85,7 +90,8 @@ class NeuropruebasTMTMapper(TMTMapper):
                 else:
                     id_suj = nombre_de_archivo
                 dictionary[id_suj] = df
-                session_data_dict[id_suj] = session_data
+                if session_data is not None:
+                    session_data_dict[id_suj] = session_data
 
             # renombro el archivo
             if not id_suj.endswith(".csv"):
@@ -93,16 +99,13 @@ class NeuropruebasTMTMapper(TMTMapper):
 
         return dictionary, session_data_dict
 
-    def map_to_experiment(self, neuropruebas_experiment: dict, metadata_df: pd.DataFrame) -> TMTExperiment:
+    def map_to_experiment(self, neuropruebas_experiment: dict, session_data_dict: dict) -> TMTExperiment:
         subjects = {}
         errors = []
         for subject_id, subject_data in neuropruebas_experiment.items():
             try:
-                subject_metadata = None  # metadata_df[
-                #     (metadata_df['id'] == subject_id) |
-                #     (metadata_df['email'] == subject_id)
-                #     ]
-                subjects[subject_id] = self.map_to_subject(subject_data, subject_metadata)
+                session_data = session_data_dict.get(subject_id, None)
+                subjects[subject_id] = self.map_to_subject(subject_data, session_data)
             except:
                 logging.exception(f"Error processing experiment for subject {subject_id}")
                 errors.append(subject_id)
@@ -112,7 +115,7 @@ class NeuropruebasTMTMapper(TMTMapper):
 
         return TMTExperiment(subjects)
 
-    def map_to_subject(self, subject_data: pd.DataFrame, subject_metadata: pd.DataFrame) -> TMTSubject:
+    def map_to_subject(self, subject_data: pd.DataFrame, session_data: dict) -> TMTSubject:
 
         training_stimuli, testing_stimuli = self.get_stimuli(subject_data)
         position_coordinates_for_every_trial, cursor_times_for_every_trial = self._extract_position_and_time_data(
@@ -145,7 +148,8 @@ class NeuropruebasTMTMapper(TMTMapper):
             target_radius=self._extract_first_valid_numeric(subject_data, 'radius'),
             canvas_size=self._extract_first_valid_numeric(subject_data, 'canvas_size'),
             personal_info=None,
-            session_context=None
+            session_context=None,
+            session_data=session_data
         )
 
     def _validate_trial_data(self, cursor_times_for_every_trial, first_click_cursor_info_for_every_trial,
