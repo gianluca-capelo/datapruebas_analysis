@@ -51,8 +51,8 @@ def load_analysis(random_state: int,
 
 
 def compute_hand_metrics(run_dir):
-    neuropruebas_metrics = compute_neuropruebas_hand_metrics(run_dir, "neuropruebas")
-    datapruebas_metrics = compute_neuropruebas_hand_metrics(run_dir, "datapruebas")
+    neuropruebas_metrics = compute_hand_metrics_for_origin(run_dir, "neuropruebas")
+    datapruebas_metrics = compute_hand_metrics_for_origin(run_dir, "datapruebas")
 
     neuropruebas_metrics["experiment_origin"] = "neuropruebas"
     datapruebas_metrics["experiment_origin"] = "datapruebas"
@@ -61,11 +61,11 @@ def compute_hand_metrics(run_dir):
     return metrics
 
 
-def compute_neuropruebas_hand_metrics(run_dir, experiment_origin):
+def compute_hand_metrics_for_origin(run_dir, experiment_origin):
     analysis = run_analysis_with_configuration_parameters(run_dir, experiment_origin)
     metrics_df = analysis.get_metrics_dataframe()
     if experiment_origin == "neuropruebas":
-        metrics_df = add_neuropruebas_metadata(metrics_df)
+        metrics_df, _ = add_neuropruebas_metadata(metrics_df)
     elif experiment_origin == "datapruebas":
         metrics_df = add_datapruebas_metadata(metrics_df)
     else:
