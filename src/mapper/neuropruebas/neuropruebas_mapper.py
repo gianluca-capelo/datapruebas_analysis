@@ -2,6 +2,7 @@ import glob
 import json
 import logging
 import os
+import re
 from typing import Optional, Dict, Tuple, List
 
 import pandas as pd
@@ -31,18 +32,21 @@ class NeuropruebasTMTMapper(TMTMapper):
 
     def _read_neuropruebas_survey(self, df):
         survey_rows = df[df['trial_type'] == 'survey-html-form']
-        if 'responses' not in survey_rows.columns:
+        if 'response' not in survey_rows.columns:
             return None
 
-        responses = survey_rows['responses']
+        responses = survey_rows['response']
 
-        if len(survey_rows) == 0:
+        if len(responses) == 0:
             return None
 
         survey_response = {}
 
-        for row in survey_rows:
-            data = eval(row)
+        for response in responses:
+            # Eliminar la parte "comentarioFinal":"..."
+            clean_response = response.replace(',"comentarioFinal":"}', '}')
+
+            data = eval(clean_response)
             survey_response.update(data)
 
         return survey_response

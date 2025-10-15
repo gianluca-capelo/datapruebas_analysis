@@ -33,8 +33,7 @@ class DatapruebasTMTMapper(TMTMapper):
                     continue
                 try:
 
-                    # subject_metadata = metadata_df[metadata_df['Id sujeto'] == experiment.subject_id]
-                    subjects[experiment.subject_id] = self.map_to_subject(experiment.records[0], None)
+                    subjects[experiment.subject_id] = self.map_to_subject(experiment.records[0])
 
                 except IndexError:
                     logging.exception(f"Error processing experiment for subject {experiment.subject_id}")
@@ -46,7 +45,7 @@ class DatapruebasTMTMapper(TMTMapper):
     def _has_finished_status(self, experiment):
         return experiment.experiment_status == "Finalizado"
 
-    def map_to_subject(self, record: Record, subject_metadata: pd.DataFrame) -> TMTSubject:
+    def map_to_subject(self, record: Record) -> TMTSubject:
         subject_data_list = record.data
 
         (
