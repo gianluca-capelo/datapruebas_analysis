@@ -79,8 +79,6 @@ class DatapruebasTMTMapper(TMTMapper):
             testing_trials=testing_trials,
             target_radius=self._extract_first_valid(subject_data_list, 'radius'),
             canvas_size=self._extract_first_valid(subject_data_list, 'canvas_size'),
-            personal_info=None,
-            session_context=None,
             session_data=self._extract_session_data(subject_data_list)
         )
 

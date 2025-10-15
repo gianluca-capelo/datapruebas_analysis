@@ -151,8 +151,6 @@ class NeuropruebasTMTMapper(TMTMapper):
             testing_trials=testing_trials,
             target_radius=self._extract_first_valid_numeric(subject_data, 'radius'),
             canvas_size=self._extract_first_valid_numeric(subject_data, 'canvas_size'),
-            personal_info=None,
-            session_context=None,
             session_data=session_data
         )
 

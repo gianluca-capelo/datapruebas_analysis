@@ -79,6 +79,7 @@ def add_neuropruebas_metadata(metrics_df: pd.DataFrame, subject_col: str = "subj
         except:
             # TODO GIAN: por el momento si no encuentra metadata, poner None
             logging.warning(f"No se encontró metadata para subject_id: {subject_id}")
+
             metadata = {"año_de_nacimiento": None, "genero": None, "nivel_educativo": None, "nacionalidad": None}
             metadata_errors.add(subject_id)
 
@@ -106,7 +107,7 @@ def add_neuropruebas_metadata(metrics_df: pd.DataFrame, subject_col: str = "subj
 
 def main():
     metrics = pd.read_csv(
-        '/home/gianluca/Research/datapruebas_analysis/data/hand_analysis/2025-09-28_16-00-13/processed/tmt/neuropruebas/metrics.csv')
+        '/home/gianluca/Research/datapruebas_analysis/data/hand_analysis/2025-10-15_18-42-42/processed/tmt/neuropruebas/metrics.csv')
     nuevo_df, metadata_errors = add_neuropruebas_metadata(metrics, subject_col='subject_id')
 
     print("Cantidad de suject_id en metrics:", len(metrics['subject_id'].unique()))
