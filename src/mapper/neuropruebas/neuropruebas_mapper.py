@@ -128,18 +128,8 @@ class NeuropruebasTMTMapper(TMTMapper):
             testing_trials=testing_trials,
             target_radius=self._extract_first_valid_numeric(subject_data, 'radius'),
             canvas_size=self._extract_first_valid_numeric(subject_data, 'canvas_size'),
-            personal_info=self._extract_subject_personal_info(subject_metadata),
-            session_context=(  # TODO GIAN: no lo tenemos?
-                SessionContext(
-                    device='PC',
-                    hand='Derecha',
-                    device_config='Mouse',
-                    alcohol_drugs='No',
-                    treatment='No',
-                    pad_usage='No',
-                    final_comment='No'
-                )
-            )
+            personal_info=None,
+            session_context=None
         )
 
     def _validate_trial_data(self, cursor_times_for_every_trial, first_click_cursor_info_for_every_trial,
@@ -377,22 +367,3 @@ class NeuropruebasTMTMapper(TMTMapper):
         df[column] = pd.to_numeric(df[column], errors="coerce")
 
         return df[column][df[column].notna()].values[0]
-
-    def _extract_subject_personal_info(self, subject_metadata: pd.DataFrame) -> SubjectPersonalInformation:
-
-        return SubjectPersonalInformation(
-            birthdate=self._extract_birthdate(subject_metadata),
-            gender='Masculino',  # if subject_metadata['genero'].iloc[0] == 'M' else 'Femenino',
-            education_level="Primario",  # subject_metadata['nivel_educativo'].iloc[0],
-            nationality="subject_metadata['nacionalidad'].iloc[0]",
-            residence_country="subject_metadata['pais_de_residencia'].iloc[0]",
-            residence_region="NO TIENE (NEUROPRUEBAS)"
-        )
-
-    def _extract_birthdate(self, subject_metadata):
-        # Mocking the birthdate to the first day of the year using the year of birth.
-        # This is done because the day and month of birth are not provided in the metadata of Neuropruebas.
-
-        date = f"1990-01-01"
-        # birthdate = datetime.strptime(date, '%Y-%m-%d') #TODO GIAN ar
-        return date
