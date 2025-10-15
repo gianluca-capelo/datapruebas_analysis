@@ -18,7 +18,7 @@ def add_datapruebas_metadata(metrics_df):
 
     missing_subjects = set(metrics_df["subject_id"]) - set(metadata_df["Id sujeto"])
 
-    #TODO GIAN: descomentar
+    #TODO GIAN: descomentar cuando actualicemos la metadata para tener todos los sujetos
     #if missing_subjects:
      #   raise ValueError(f"Los siguientes subject_id no están en metadata: {missing_subjects}")
 

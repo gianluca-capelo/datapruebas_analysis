@@ -33,10 +33,12 @@ class NeuropruebasTMTMapper(TMTMapper):
         survey_rows = df[df['trial_type'] == 'survey-html-form']['response']
         if len(survey_rows) == 0:
             return None
+        survey_response = {}
         for row in survey_rows:
             data = eval(row)
-            #completar esto
+            survey_response.update(data)
 
+        return survey_response
 
 
 
