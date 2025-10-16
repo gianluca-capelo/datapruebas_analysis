@@ -21,10 +21,6 @@ class NeuropruebasFormatDetectionException(Exception):
 class NeuropruebasTMTMapper(TMTMapper):
 
     def map(self, data_path: str, metadata_path: Optional[str] = None) -> TMTExperiment:
-        # if metadata_path is None:
-        #   raise ValueError("Metadata path is required for Neuropruebas data")
-
-        tmt_metadata = None  # pd.read_csv(metadata_path, sep=';')
 
         experiment, session_data_dict = self._read_neuropruebas_output(data_path)
 
