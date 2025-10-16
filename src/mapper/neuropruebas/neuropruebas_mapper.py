@@ -2,7 +2,6 @@ import glob
 import json
 import logging
 import os
-import re
 from typing import Optional, Dict, Tuple, List
 
 import pandas as pd
@@ -44,6 +43,13 @@ class NeuropruebasTMTMapper(TMTMapper):
 
             data = eval(clean_response)
             survey_response.update(data)
+
+        serie = df["recorded_at"].dropna().astype(str)
+        serie = serie[serie.str.strip() != ""]
+        recorded_at = serie.iloc[0] if not serie.empty else None
+
+        if recorded_at:
+            survey_response['recorded_at'] = recorded_at
 
         return survey_response
 

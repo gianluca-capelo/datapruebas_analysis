@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from typing import Any
 
 import pandas as pd
@@ -80,8 +81,14 @@ def add_neuropruebas_metadata(metrics_df: pd.DataFrame, subject_col: str = "subj
             # TODO GIAN: por el momento si no encuentra metadata, poner None
             logging.warning(f"No se encontró metadata para subject_id: {subject_id}")
 
-            metadata = {"año_de_nacimiento": None, "genero": None, "nivel_educativo": None, "nacionalidad": None}
-            metadata_errors.add(subject_id)
+            try:
+                metadata = get_metadata_from_metrics(subject_rows.copy())
+            except ValueError as e:
+                print(f"No se pudo inferir metadata para subject_id: {subject_id}, poniendo None")
+                print(e)
+                metadata = {"año_de_nacimiento": None, "genero": None, "nivel_educativo": None, "nacionalidad": None}
+                metadata_errors.add(subject_id)
+
 
         # Agregar metadata como nuevas columnas
         for metadata_value in ["año_de_nacimiento", "genero", "nivel_educativo", "nacionalidad"]:
@@ -105,9 +112,36 @@ def add_neuropruebas_metadata(metrics_df: pd.DataFrame, subject_col: str = "subj
     return result_df, metadata_errors
 
 
+def get_metadata_from_metrics(subject_rows: pd.DataFrame) -> dict:
+    age = subject_rows["age"].iloc[0]
+    if pd.isna(age) or age == "":
+        raise ValueError("No se puede inferir año de nacimiento sin edad")
+
+    recorded_at = subject_rows["recorded_at"].iloc[0]
+    if pd.isna(recorded_at) or recorded_at == "":
+        raise ValueError("No se puede inferir año de nacimiento sin fecha registrada")
+
+    birth_year = get_birth_year(age, recorded_at)
+
+    return {"año_de_nacimiento": birth_year, "genero": None, "nivel_educativo": None, "nacionalidad": None}
+
+
+def get_birth_year(age: str, recorded_at: str) -> int:
+    """
+    Calcula el año de nacimiento en base a la edad y la fecha registrada.
+
+    :param age: Edad de la persona (str)
+    :param recorded_at: Fecha en formato 'YYYY-MM-DD HH:MM:SS'
+    :return: Año estimado de nacimiento (int)
+    """
+    date = datetime.strptime(recorded_at, "%Y-%m-%d %H:%M:%S")
+    return date.year - int(age)
+
+
 def main():
     metrics = pd.read_csv(
-        '/home/gianluca/Research/datapruebas_analysis/data/hand_analysis/2025-10-15_18-42-42/processed/tmt/neuropruebas/metrics.csv')
+        '/home/gianluca/Research/datapruebas_analysis/data/hand_analysis/2025-10-16_09-59-55/processed/tmt/neuropruebas/metrics.csv'
+    )
     nuevo_df, metadata_errors = add_neuropruebas_metadata(metrics, subject_col='subject_id')
 
     print("Cantidad de suject_id en metrics:", len(metrics['subject_id'].unique()))
