@@ -115,16 +115,15 @@ class NeuropruebasTMTMapper(TMTMapper):
                 subjects[subject_id] = self.map_to_subject(subject_data, session_data)
             except Exception as e:
                 logging.exception(f"Error processing experiment for subject {subject_id}")
-                errors.append(f"Subject {subject_id}: {str(e)}")
+                errors.append({"subject_id": subject_id, "error": str(e)})
                 continue
         if errors:
             logging.warning(f"Errors found for subjects: {len(errors)} of total {len(neuropruebas_experiment)}. ")
 
-        #Save list of errors to a file
-        save_file_path = os.path.join(LOG_DIR, "neuropruebas_mapping_errors.txt")
-        with open(save_file_path, "w") as f:
-            for error in errors:
-                f.write(f"{error}\n")
+            # Save errors to a CSV file
+            save_file_path = os.path.join(LOG_DIR, "neuropruebas_mapping_errors.csv")
+            errors_df = pd.DataFrame(errors)
+            errors_df.to_csv(save_file_path, index=False)
 
         return TMTExperiment(subjects)
 
