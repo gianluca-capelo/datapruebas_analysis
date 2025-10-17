@@ -9,6 +9,7 @@ from neurotask.tmt.mapper.mapper import TMTMapper
 from neurotask.tmt.model.tmt_model import TMTExperiment, TMTSubject, CursorInfo, Coordinate, TMTTarget, TrialType, \
     TMTTrial, SubjectPersonalInformation, SessionContext
 
+from src.config import LOG_DIR
 from src.mapper.datapruebas.datapruebas_model import SubjectData
 from src.mapper.neuropruebas.neuropruebas_model import NeuropruebasTarget
 
@@ -112,12 +113,18 @@ class NeuropruebasTMTMapper(TMTMapper):
             try:
                 session_data = session_data_dict.get(subject_id, None)
                 subjects[subject_id] = self.map_to_subject(subject_data, session_data)
-            except:
+            except Exception as e:
                 logging.exception(f"Error processing experiment for subject {subject_id}")
-                errors.append(subject_id)
+                errors.append(f"Subject {subject_id}: {str(e)}")
                 continue
         if errors:
-            logging.warning(f"Errors found for subjects: {len(errors)}")
+            logging.warning(f"Errors found for subjects: {len(errors)} of total {len(neuropruebas_experiment)}. ")
+
+        #Save list of errors to a file
+        save_file_path = os.path.join(LOG_DIR, "neuropruebas_mapping_errors.txt")
+        with open(save_file_path, "w") as f:
+            for error in errors:
+                f.write(f"{error}\n")
 
         return TMTExperiment(subjects)
 
