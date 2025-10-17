@@ -115,7 +115,11 @@ class NeuropruebasTMTMapper(TMTMapper):
                 subjects[subject_id] = self.map_to_subject(subject_data, session_data)
             except Exception as e:
                 logging.exception(f"Error processing experiment for subject {subject_id}")
-                errors.append({"subject_id": subject_id, "error": str(e)})
+                errors.append({
+                    "subject_id": subject_id,
+                    "error": str(e),
+                    "num_rows": len(subject_data)
+                })
                 continue
         if errors:
             logging.warning(f"Errors found for subjects: {len(errors)} of total {len(neuropruebas_experiment)}. ")
