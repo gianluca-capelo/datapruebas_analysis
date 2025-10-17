@@ -5,6 +5,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 DATA_DIR = os.path.join(BASE_DIR, "data")
 
+LOG_DIR = os.path.join(BASE_DIR, "logs")
+
 DATASET_DIR = os.path.join(BASE_DIR, "data")
 
 EXPERIMENT_FILE_NAME = "datapruebas_12_9_2025.json"
@@ -18,6 +20,8 @@ TMT_NEUROPRUEBAS_METRICS_PATH = os.path.join(DATA_DIR, "processed", "tmt", "neur
 TMT_DATAPRUEBAS_METRICS_PATH = os.path.join(DATA_DIR, "processed", "tmt", "datapruebas", "metrics.csv")
 TMT_METRICS_PATH = os.path.join(DATA_DIR, "processed", "tmt", "metrics.csv")
 
+DATAPRUEBAS_METADATA_PATH = os.path.join(DATA_DIR, "raw", "tmt", "datapruebas", "metadata", "metadata.csv")
+NEUROPRUEBAS_METADATA_PATH = os.path.join(DATA_DIR, "raw", "tmt", "neuropruebas", "metadata", "metadata.csv")
 TRAIN_SET_PATH = os.path.join(DATA_DIR, "hand_analysis", "train_set.csv")
 EVAL_SET_PATH = os.path.join(DATA_DIR, "hand_analysis", "eval_set.csv")
 
@@ -32,7 +36,7 @@ FIGURES_DIR = os.path.join(BASE_DIR, "figures")
 RADIUS_HEIGHT = 0.0275
 
 # TMT parameters
+CONSECUTIVE_POINTS = 5
 CORRECT_THRESHOLD = None  # 8
-CONSECUTIVE_POINTS = None  # 5
 CUT_CRITERIA = None  # "MINIMUM_TARGETS"
 CALCULATE_CROSSES = False

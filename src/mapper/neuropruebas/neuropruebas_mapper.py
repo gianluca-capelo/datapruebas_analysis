@@ -9,6 +9,7 @@ from neurotask.tmt.mapper.mapper import TMTMapper
 from neurotask.tmt.model.tmt_model import TMTExperiment, TMTSubject, CursorInfo, Coordinate, TMTTarget, TrialType, \
     TMTTrial, SubjectPersonalInformation, SessionContext
 
+from src.config import LOG_DIR
 from src.mapper.datapruebas.datapruebas_model import SubjectData
 from src.mapper.neuropruebas.neuropruebas_model import NeuropruebasTarget
 
@@ -20,16 +21,40 @@ class NeuropruebasFormatDetectionException(Exception):
 class NeuropruebasTMTMapper(TMTMapper):
 
     def map(self, data_path: str, metadata_path: Optional[str] = None) -> TMTExperiment:
-        # if metadata_path is None:
-        #   raise ValueError("Metadata path is required for Neuropruebas data")
 
-        tmt_metadata = None  # pd.read_csv(metadata_path, sep=';')
+        experiment, session_data_dict = self._read_neuropruebas_output(data_path)
 
-        experiment = self._read_neuropruebas_output(data_path)
+        return self.map_to_experiment(experiment, session_data_dict)
 
-        return self.map_to_experiment(experiment, tmt_metadata)
+    def _read_neuropruebas_survey(self, df):
+        survey_rows = df[df['trial_type'] == 'survey-html-form']
+        if 'response' not in survey_rows.columns:
+            return None
 
-    def _read_neuropruebas_output(self, folder_path) -> Dict[str, pd.DataFrame]:
+        responses = survey_rows['response']
+
+        if len(responses) == 0:
+            return None
+
+        survey_response = {}
+
+        for response in responses:
+            # Eliminar la parte "comentarioFinal":"..."
+            clean_response = response.replace(',"comentarioFinal":"}', '}')
+
+            data = eval(clean_response)
+            survey_response.update(data)
+
+        serie = df["recorded_at"].dropna().astype(str)
+        serie = serie[serie.str.strip() != ""]
+        recorded_at = serie.iloc[0] if not serie.empty else None
+
+        if recorded_at:
+            survey_response['recorded_at'] = recorded_at
+
+        return survey_response
+
+    def _read_neuropruebas_output(self, folder_path) -> Tuple[Dict[str, pd.DataFrame], Dict[str, dict]]:
         """
         Input:
                folder_path: Path de la carpeta donde se encuentran los datos a cargar
@@ -39,12 +64,14 @@ class NeuropruebasTMTMapper(TMTMapper):
 
         """
         dictionary = {}
+        session_data_dict = {}
 
         for filename in glob.glob(os.path.join(folder_path, "*.csv")):
             with open(filename, "r") as f:
                 nombre_de_archivo = f.name
                 nombre_de_archivo = nombre_de_archivo.split("/")[-1]
                 df = pd.read_csv(f.name, on_bad_lines="skip")
+                session_data = self._read_neuropruebas_survey(df.copy())
 
                 if "SSD" in list(df.columns):  # es sst
                     df = df[df["trial_type"] == "custom-stop-signal-plugin"]
@@ -70,33 +97,47 @@ class NeuropruebasTMTMapper(TMTMapper):
                 else:
                     id_suj = nombre_de_archivo
                 dictionary[id_suj] = df
+                if session_data is not None:
+                    session_data_dict[id_suj] = session_data
 
             # renombro el archivo
             if not id_suj.endswith(".csv"):
                 os.rename(filename, os.path.join(folder_path, f"{id_suj}.csv"))
 
-        return dictionary
+        return dictionary, session_data_dict
 
-    def map_to_experiment(self, neuropruebas_experiment: dict, metadata_df: pd.DataFrame) -> TMTExperiment:
+    def map_to_experiment(self, neuropruebas_experiment: dict, session_data_dict: dict) -> TMTExperiment:
         subjects = {}
         errors = []
         for subject_id, subject_data in neuropruebas_experiment.items():
             try:
-                subject_metadata = None  # metadata_df[
-                #     (metadata_df['id'] == subject_id) |
-                #     (metadata_df['email'] == subject_id)
-                #     ]
-                subjects[subject_id] = self.map_to_subject(subject_data, subject_metadata)
-            except:
+                session_data = session_data_dict.get(subject_id, None)
+                subjects[subject_id] = self.map_to_subject(subject_data, session_data)
+            except Exception as e:
                 logging.exception(f"Error processing experiment for subject {subject_id}")
-                errors.append(subject_id)
+                error_info = {
+                    "subject_id": subject_id,
+                    "error": str(e),
+                    "num_rows": len(subject_data)
+                }
+                if session_data:
+                    final_comment = session_data.get("comentarioFinal", None)
+                    if final_comment:
+                        error_info["final_comment"] = final_comment
+                errors.append(error_info)
+
                 continue
         if errors:
-            logging.warning(f"Errors found for subjects: {len(errors)}")
+            logging.warning(f"Errors found for subjects: {len(errors)} of total {len(neuropruebas_experiment)}. ")
+
+            # Save errors to a CSV file
+            save_file_path = os.path.join(LOG_DIR, "neuropruebas_mapping_errors.csv")
+            errors_df = pd.DataFrame(errors)
+            errors_df.to_csv(save_file_path, index=False)
 
         return TMTExperiment(subjects)
 
-    def map_to_subject(self, subject_data: pd.DataFrame, subject_metadata: pd.DataFrame) -> TMTSubject:
+    def map_to_subject(self, subject_data: pd.DataFrame, session_data: dict) -> TMTSubject:
 
         training_stimuli, testing_stimuli = self.get_stimuli(subject_data)
         position_coordinates_for_every_trial, cursor_times_for_every_trial = self._extract_position_and_time_data(
@@ -128,18 +169,7 @@ class NeuropruebasTMTMapper(TMTMapper):
             testing_trials=testing_trials,
             target_radius=self._extract_first_valid_numeric(subject_data, 'radius'),
             canvas_size=self._extract_first_valid_numeric(subject_data, 'canvas_size'),
-            personal_info=self._extract_subject_personal_info(subject_metadata),
-            session_context=(  # TODO GIAN: no lo tenemos?
-                SessionContext(
-                    device='PC',
-                    hand='Derecha',
-                    device_config='Mouse',
-                    alcohol_drugs='No',
-                    treatment='No',
-                    pad_usage='No',
-                    final_comment='No'
-                )
-            )
+            session_data=session_data
         )
 
     def _validate_trial_data(self, cursor_times_for_every_trial, first_click_cursor_info_for_every_trial,
@@ -377,22 +407,3 @@ class NeuropruebasTMTMapper(TMTMapper):
         df[column] = pd.to_numeric(df[column], errors="coerce")
 
         return df[column][df[column].notna()].values[0]
-
-    def _extract_subject_personal_info(self, subject_metadata: pd.DataFrame) -> SubjectPersonalInformation:
-
-        return SubjectPersonalInformation(
-            birthdate=self._extract_birthdate(subject_metadata),
-            gender='Masculino',  # if subject_metadata['genero'].iloc[0] == 'M' else 'Femenino',
-            education_level="Primario",  # subject_metadata['nivel_educativo'].iloc[0],
-            nationality="subject_metadata['nacionalidad'].iloc[0]",
-            residence_country="subject_metadata['pais_de_residencia'].iloc[0]",
-            residence_region="NO TIENE (NEUROPRUEBAS)"
-        )
-
-    def _extract_birthdate(self, subject_metadata):
-        # Mocking the birthdate to the first day of the year using the year of birth.
-        # This is done because the day and month of birth are not provided in the metadata of Neuropruebas.
-
-        date = f"1990-01-01"
-        # birthdate = datetime.strptime(date, '%Y-%m-%d') #TODO GIAN ar
-        return date
