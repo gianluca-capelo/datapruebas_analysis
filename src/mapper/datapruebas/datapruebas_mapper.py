@@ -1,6 +1,5 @@
 import logging
 
-import pandas as pd
 from neurotask.tmt.mapper.mapper import TMTMapper
 from neurotask.tmt.metrics.distance_calculation import calculate_distance
 from neurotask.tmt.model.tmt_model import *
@@ -90,7 +89,10 @@ class DatapruebasTMTMapper(TMTMapper):
         )
         if not valid_data:
             raise ValueError(
-                "Position coordinates, first click cursor info and cursor times and total time must have the same length")
+                f"Position coordinates, first click cursor info and cursor times and total time must have the same length" +
+                f"position coords =  {len(position_coordinates_for_every_trial)}, " +
+                f"first clicks = {len(first_click_cursor_info_for_every_trial)}, " +
+                f"times = {len(cursor_times_for_every_trial)} respectively.")
 
     def map_to_trials(self, stimulus: Optional[List[StimulusTrial]],
                       position_coordinates: List[List[Tuple[float, float]]],

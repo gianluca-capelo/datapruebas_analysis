@@ -183,7 +183,12 @@ class NeuropruebasTMTMapper(TMTMapper):
 
         if not valid_length:
             raise ValueError(
-                "Position coordinates, first click cursor info and cursor times and total time must have the same length "
+                "Position coordinates, first click cursor info and cursor times and total time must have the same length " +
+                f"position coords =  {len(position_coordinates_for_every_trial)}, " +
+                f"first clicks = {len(first_click_cursor_info_for_every_trial)}, " +
+                f"times = {len(cursor_times_for_every_trial)} ." +
+                f"training stimuli = {len(training_stimuli)}, " +
+                f"testing stimuli = {len(testing_stimuli)}"
             )
 
     def get_stimuli(self, df):
