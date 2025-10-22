@@ -13,6 +13,36 @@ from src.config import LOG_DIR
 from src.mapper.datapruebas.datapruebas_model import SubjectData
 from src.mapper.neuropruebas.neuropruebas_model import NeuropruebasTarget
 
+class LengthMismatchError(Exception):
+    """Excepción personalizada para listas con longitudes inconsistentes."""
+
+    def __init__(self, position_coords_len, first_clicks_len, times_len, training_stimuli_len, testing_stimuli_len):
+        self.position_coords_len = position_coords_len
+        self.first_clicks_len = first_clicks_len
+        self.times_len = times_len
+        self.training_stimuli_len = training_stimuli_len
+        self.testing_stimuli_len = testing_stimuli_len
+
+        message = (
+            "Position coordinates, first click cursor info, cursor times, and stimuli lists "
+            "must have the same length. "
+            f"position coords = {position_coords_len}, "
+            f"first clicks = {first_clicks_len}, "
+            f"times = {times_len}, "
+            f"training stimuli = {training_stimuli_len}, "
+            f"testing stimuli = {testing_stimuli_len}."
+        )
+        super().__init__(message)
+
+    def as_dict(self):
+        return {
+            "position_coords_len": self.position_coords_len,
+            "first_clicks_len": self.first_clicks_len,
+            "times_len": self.times_len,
+            "training_stimuli_len": self.training_stimuli_len,
+            "testing_stimuli_len": self.testing_stimuli_len
+        }
+
 
 class NeuropruebasFormatDetectionException(Exception):
     pass
@@ -109,6 +139,7 @@ class NeuropruebasTMTMapper(TMTMapper):
     def map_to_experiment(self, neuropruebas_experiment: dict, session_data_dict: dict) -> TMTExperiment:
         subjects = {}
         errors = []
+        session_data = None
         for subject_id, subject_data in neuropruebas_experiment.items():
             try:
                 session_data = session_data_dict.get(subject_id, None)
@@ -120,10 +151,15 @@ class NeuropruebasTMTMapper(TMTMapper):
                     "error": str(e),
                     "num_rows": len(subject_data)
                 }
+
+                if isinstance(e, LengthMismatchError):
+                    error_info.update(e.as_dict())
+
                 if session_data:
                     final_comment = session_data.get("comentarioFinal", None)
                     if final_comment:
                         error_info["final_comment"] = final_comment
+
                 errors.append(error_info)
 
                 continue
@@ -182,13 +218,12 @@ class NeuropruebasTMTMapper(TMTMapper):
         )
 
         if not valid_length:
-            raise ValueError(
-                "Position coordinates, first click cursor info and cursor times and total time must have the same length " +
-                f"position coords =  {len(position_coordinates_for_every_trial)}, " +
-                f"first clicks = {len(first_click_cursor_info_for_every_trial)}, " +
-                f"times = {len(cursor_times_for_every_trial)} ." +
-                f"training stimuli = {len(training_stimuli)}, " +
-                f"testing stimuli = {len(testing_stimuli)}"
+            raise LengthMismatchError(
+                len(position_coordinates_for_every_trial),
+                len(first_click_cursor_info_for_every_trial),
+                len(cursor_times_for_every_trial),
+                len(training_stimuli),
+                len(testing_stimuli)
             )
 
     def get_stimuli(self, df):
