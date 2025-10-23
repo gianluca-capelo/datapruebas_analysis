@@ -138,19 +138,8 @@ class NeuropruebasTMTMapper(TMTMapper):
                 subjects[subject_id] = self.map_to_subject(subject_data, session_data)
             except Exception as e:
                 logging.exception(f"Error processing experiment for subject {subject_id}")
-                error_info = {
-                    "subject_id": subject_id,
-                    "error": str(e),
-                    "num_rows": len(subject_data)
-                }
 
-                if isinstance(e, LengthMismatchError):
-                    error_info.update(e.as_dict())
-
-                if session_data:
-                    final_comment = session_data.get("comentarioFinal", None)
-                    if final_comment:
-                        error_info["final_comment"] = final_comment
+                error_info = self._build_error_info(e, session_data, subject_data, subject_id)
 
                 errors.append(error_info)
 
@@ -164,6 +153,20 @@ class NeuropruebasTMTMapper(TMTMapper):
             errors_df.to_csv(save_file_path, index=False)
 
         return TMTExperiment(subjects)
+
+    def _build_error_info(self, e, session_data, subject_data, subject_id):
+        error_info = {
+            "subject_id": subject_id,
+            "error": str(e),
+            "num_rows": len(subject_data)
+        }
+        if isinstance(e, LengthMismatchError):
+            error_info.update(e.as_dict())
+        if session_data:
+            final_comment = session_data.get("comentarioFinal", None)
+            if final_comment:
+                error_info["final_comment"] = final_comment
+        return error_info
 
     def map_to_subject(self, subject_data: pd.DataFrame, session_data: dict) -> TMTSubject:
 
