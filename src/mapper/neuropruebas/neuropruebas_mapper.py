@@ -104,29 +104,12 @@ class NeuropruebasTMTMapper(TMTMapper):
                 session_data = self._read_neuropruebas_survey(df.copy())
 
                 if "SSD" in list(df.columns):  # es sst
-                    df = df[df["trial_type"] == "custom-stop-signal-plugin"]
+                    raise ValueError("El archivo corresponde a SST, no a Neuropruebas TMT")
 
-                    df["rt"] = df["rt"].astype(float)
-                    df["raw_rt"] = df["raw_rt"].astype(float)
-                    df["onset_of_first_stimulus"] = df["onset_of_first_stimulus"].astype(
-                        float
-                    )
-                    df["onset_of_second_stimulus"] = df["onset_of_second_stimulus"].astype(
-                        float
-                    )
-                    df["SSD"] = df["SSD"].astype(float)
-                    df["trial_i"] = df["trial_i"].astype(int)
-                    df["block_i"] = df["block_i"].astype(int)
+                id_suj = self.resolve_subject_id(df, nombre_de_archivo)
 
-                    df.to_csv(f.name)
-
-                if "hash" in list(df.columns):
-                    id_suj = df["hash"].iloc[0]
-                elif "id" in list(df.columns):
-                    id_suj = df["id"].iloc[0]
-                else:
-                    id_suj = nombre_de_archivo
                 dictionary[id_suj] = df
+
                 if session_data is not None:
                     session_data_dict[id_suj] = session_data
 
@@ -135,6 +118,15 @@ class NeuropruebasTMTMapper(TMTMapper):
                 os.rename(filename, os.path.join(folder_path, f"{id_suj}.csv"))
 
         return dictionary, session_data_dict
+
+    def resolve_subject_id(self, df, nombre_de_archivo):
+        if "hash" in list(df.columns):
+            id_suj = df["hash"].iloc[0]
+        elif "id" in list(df.columns):
+            id_suj = df["id"].iloc[0]
+        else:
+            id_suj = nombre_de_archivo
+        return id_suj
 
     def map_to_experiment(self, neuropruebas_experiment: dict, session_data_dict: dict) -> TMTExperiment:
         subjects = {}
