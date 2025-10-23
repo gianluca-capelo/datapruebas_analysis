@@ -171,8 +171,10 @@ class NeuropruebasTMTMapper(TMTMapper):
     def map_to_subject(self, subject_data: pd.DataFrame, session_data: dict) -> TMTSubject:
 
         training_stimuli, testing_stimuli = self.get_stimuli(subject_data)
+
         position_coordinates_for_every_trial, cursor_times_for_every_trial = self._extract_position_and_time_data(
             subject_data)
+
         first_click_cursor_info_for_every_trial = self.get_first_clicks_cursor_info(subject_data)
 
         self._validate_trial_data(cursor_times_for_every_trial, first_click_cursor_info_for_every_trial,
