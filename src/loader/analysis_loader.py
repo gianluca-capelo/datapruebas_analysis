@@ -51,14 +51,15 @@ def load_analysis(random_state: int,
 
 
 def compute_hand_metrics(run_dir):
+    #TODO GIAN: Comentando solo para desarrollo
     neuropruebas_metrics = compute_hand_metrics_for_origin(run_dir, "neuropruebas")
-    datapruebas_metrics = compute_hand_metrics_for_origin(run_dir, "datapruebas")
+    #datapruebas_metrics = compute_hand_metrics_for_origin(run_dir, "datapruebas")
 
     neuropruebas_metrics["experiment_origin"] = "neuropruebas"
-    datapruebas_metrics["experiment_origin"] = "datapruebas"
+    #datapruebas_metrics["experiment_origin"] = "datapruebas"
 
-    metrics = concat_dataframes(neuropruebas_metrics, datapruebas_metrics)
-    return metrics
+    #metrics = concat_dataframes(neuropruebas_metrics, datapruebas_metrics)
+    return neuropruebas_metrics
 
 
 def compute_hand_metrics_for_origin(run_dir, experiment_origin):
