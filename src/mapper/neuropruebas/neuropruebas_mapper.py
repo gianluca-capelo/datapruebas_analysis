@@ -285,49 +285,52 @@ class NeuropruebasTMTMapper(TMTMapper):
             self, df: pd.DataFrame
     ) -> Tuple[List[List[Tuple[float, float]]], List[List[int]]]:
 
-        is_valid_trial = self.determine_trial_validation(df)
-        trial_mouse_positions = self.get_trial_mouse_positions(df, is_valid_trial)
-        trial_cursor_times = self.get_trial_cursor_times(df, is_valid_trial)
+        # 1) Filtrado previo por TMT
+        df_tmt = df[df["trial_type"] == "trail-making-test"].copy()
+
+        #is_valid_trial = self.determine_trial_validation(df_tmt)
+        trial_mouse_positions = self.get_trial_mouse_positions(df_tmt)#, is_valid_trial)
+        trial_cursor_times = self.get_trial_cursor_times(df_tmt)#, is_valid_trial)
 
         position_coordinates = [[eval(i) for i in t] for t in trial_mouse_positions]
 
         return position_coordinates, trial_cursor_times
 
-    def determine_trial_validation(self, df):
+    # def determine_trial_validation(self, df):
+    #
+    #     position_has_quotes = (df["position"] == '"').any()
+    #     cursor_time_has_quotes = (df["cursor_time"] == '"').any()
+    #     position_has_nan = df["position"].isna().any()
+    #     cursor_time_has_nan = df["cursor_time"].isna().any()
+    #
+    #     quotes_means_no_trial = position_has_quotes and cursor_time_has_quotes
+    #     nan_means_no_trial = position_has_nan and cursor_time_has_nan
+    #
+    #     if quotes_means_no_trial:
+    #         return lambda trial_data: isinstance(trial_data, str) and trial_data != '"'
+    #     if nan_means_no_trial:
+    #         return lambda trial_data: isinstance(trial_data, str)
+    #     else:
+    #         raise NeuropruebasFormatDetectionException(
+    #             f"Unable to determine the format of the data. "
+    #             f"position_has_nan: {position_has_nan}, cursor_time_has_nan: {cursor_time_has_nan}, "
+    #             f"position_has_quotes: {position_has_quotes}, cursor_time_has_quotes: {cursor_time_has_quotes}"
+    #         )
 
-        position_has_quotes = (df["position"] == '"').any()
-        cursor_time_has_quotes = (df["cursor_time"] == '"').any()
-        position_has_nan = df["position"].isna().any()
-        cursor_time_has_nan = df["cursor_time"].isna().any()
+    def get_trial_mouse_positions(self, df):
+        return self.get_trial_data(df, "position")
 
-        quotes_means_no_trial = position_has_quotes and cursor_time_has_quotes
-        nan_means_no_trial = position_has_nan and cursor_time_has_nan
+    def get_trial_cursor_times(self, df):
+        return self.get_trial_data(df, "cursor_time")
 
-        if quotes_means_no_trial:
-            return lambda trial_data: isinstance(trial_data, str) and trial_data != '"'
-        if nan_means_no_trial:
-            return lambda trial_data: isinstance(trial_data, str)
-        else:
-            raise NeuropruebasFormatDetectionException(
-                f"Unable to determine the format of the data. "
-                f"position_has_nan: {position_has_nan}, cursor_time_has_nan: {cursor_time_has_nan}, "
-                f"position_has_quotes: {position_has_quotes}, cursor_time_has_quotes: {cursor_time_has_quotes}"
-            )
+    def get_trial_data(self, df, column_name):
 
-    def get_trial_mouse_positions(self, df, is_valid_trial):
-        return self.get_trial_data(df, "position", is_valid_trial)
-
-    def get_trial_cursor_times(self, df, is_valid_trial):
-        return self.get_trial_data(df, "cursor_time", is_valid_trial)
-
-    def get_trial_data(self, df, column_name, is_valid_trial):
-
-        raw_mouse_data = [trial_data for trial_data in df[column_name] if is_valid_trial(trial_data)]
+        raw_mouse_data = [trial_data for trial_data in df[column_name]] # if is_valid_trial(trial_data)]
 
         return [eval(t) for t in raw_mouse_data]
 
     def get_first_clicks_cursor_info(self, df):
-        df_tmt = df[df["trial_type"] == "trail-making-test"]
+        df_tmt = df[df["trial_type"] == "trail-making-test"].copy()
         first_clicks = []
 
         for _, row in df_tmt.iterrows():
