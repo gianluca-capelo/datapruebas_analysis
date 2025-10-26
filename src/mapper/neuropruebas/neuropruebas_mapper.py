@@ -13,6 +13,7 @@ from src.config import LOG_DIR
 from src.mapper.datapruebas.datapruebas_model import SubjectData
 from src.mapper.neuropruebas.neuropruebas_model import NeuropruebasTarget
 
+
 class LengthMismatchError(Exception):
     """Excepción personalizada para listas con longitudes inconsistentes."""
 
@@ -209,7 +210,6 @@ class NeuropruebasTMTMapper(TMTMapper):
 
         return stimulus[0:2], stimulus[2:]
 
-
     def map_to_subject(self, subject_data: pd.DataFrame, session_data: dict) -> TMTSubject:
 
         training_stimuli, testing_stimuli = self.get_stimuli(subject_data)
@@ -265,6 +265,7 @@ class NeuropruebasTMTMapper(TMTMapper):
                 len(training_stimuli),
                 len(testing_stimuli)
             )
+
     def process_training_test_stimuli(self, df):
         training_stimulus = [stim["stimulus"] for stim in json.loads(df["train_stimuli"][1])]
         test_stimulus = [stim["stimulus"] for stim in json.loads(df["test_stimuli"][1])]
@@ -330,32 +331,37 @@ class NeuropruebasTMTMapper(TMTMapper):
         first_clicks = []
 
         for _, row in df_tmt.iterrows():
-            click_info = None
-
-            # Intento 1: columna x_y_clicked_position
-            try:
-                if isinstance(row.get("x_y_clicked_position"), str):
-                    x, y, t = eval(row["x_y_clicked_position"])
-                    click_info = CursorInfo(position=Coordinate(x=x, y=y), time=t)
-            except Exception:
-                pass
-
-            # Intento 2: columnas separadas X_click, Y_click, T_click
-            if click_info is None:
-                try:
-                    x = pd.to_numeric(row.get("X_click"), errors="coerce")
-                    y = pd.to_numeric(row.get("Y_click"), errors="coerce")
-                    t = pd.to_numeric(row.get("T_click"), errors="coerce")
-
-                    if pd.notna(x) and pd.notna(y) and pd.notna(t):
-                        click_info = CursorInfo(position=Coordinate(x=x, y=y), time=t)
-                except Exception:
-                    pass
+            click_info = self.get_first_click(row)
 
             # Si no se pudo obtener el click, agrego None
             first_clicks.append(click_info)
 
         return first_clicks
+
+    def get_first_click(self, row):
+        click_info = None
+
+        # Intento 1: columna x_y_clicked_position
+        try:
+            if isinstance(row.get("x_y_clicked_position"), str):
+                x, y, t = eval(row["x_y_clicked_position"])
+                click_info = CursorInfo(position=Coordinate(x=x, y=y), time=t)
+        except Exception:
+            pass
+
+        # Intento 2: columnas separadas X_click, Y_click, T_click
+        if click_info is None:
+            try:
+                x = pd.to_numeric(row.get("X_click"), errors="coerce")
+                y = pd.to_numeric(row.get("Y_click"), errors="coerce")
+                t = pd.to_numeric(row.get("T_click"), errors="coerce")
+
+                if pd.notna(x) and pd.notna(y) and pd.notna(t):
+                    click_info = CursorInfo(position=Coordinate(x=x, y=y), time=t)
+            except Exception:
+                pass
+
+        return click_info
 
     def map_to_trials(self, stimulus: Optional[List[List[NeuropruebasTarget]]],
                       position_coordinates: List[List[Tuple[float, float]]],
