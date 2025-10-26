@@ -266,17 +266,6 @@ class NeuropruebasTMTMapper(TMTMapper):
         n_trials = len(df_tmt)
         if n_trials == 0:
             raise ValueError("Subject csv does not contain any row with trial type 'trail-making-test'")
-        if n_trials < 2:
-            raise ValueError(f"Expected at least 2 TMT trials for training, found {n_trials}.")
-
-        # 2) Validaciones de stimulus
-        if len(train_stimulus) != 2:
-            raise ValueError(f"train_stimulus must have 2 items, got {len(train_stimulus)}.")
-        if len(test_stimulus) != (n_trials - 2):
-            raise ValueError(
-                f"test_stimulus must have {n_trials - 2} items, got {len(test_stimulus)}."
-            )
-
         trials = []
 
         for i, (_, row) in enumerate(df_tmt.iterrows()):
