@@ -35,7 +35,6 @@ def load_analysis(random_state: int,
 
     # 2) Execute analysis
     metrics_df = compute_hand_metrics(run_dir)
-    # TODO GIAN: metrics_df = add_metadata_to_metrics(metrics_df)
 
     # 3) Split the dataset if required
     train_subject_ids, eval_subject_ids = get_split_ids(eval_size, old_split_config_date, random_state, split,
@@ -51,14 +50,13 @@ def load_analysis(random_state: int,
 
 
 def compute_hand_metrics(run_dir):
-    #TODO GIAN: Comentando solo para desarrollo
     neuropruebas_metrics = compute_hand_metrics_for_origin(run_dir, "neuropruebas")
-    #datapruebas_metrics = compute_hand_metrics_for_origin(run_dir, "datapruebas")
+    datapruebas_metrics = compute_hand_metrics_for_origin(run_dir, "datapruebas")
 
     neuropruebas_metrics["experiment_origin"] = "neuropruebas"
-    #datapruebas_metrics["experiment_origin"] = "datapruebas"
+    datapruebas_metrics["experiment_origin"] = "datapruebas"
 
-    #metrics = concat_dataframes(neuropruebas_metrics, datapruebas_metrics)
+    metrics = concat_dataframes(neuropruebas_metrics, datapruebas_metrics)
     return neuropruebas_metrics
 
 
