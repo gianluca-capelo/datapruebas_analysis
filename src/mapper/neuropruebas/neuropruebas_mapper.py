@@ -2,6 +2,7 @@ import glob
 import json
 import logging
 import os
+from ast import literal_eval
 from typing import Optional, Dict, Tuple, List
 
 import pandas as pd
@@ -12,6 +13,37 @@ from neurotask.tmt.model.tmt_model import TMTExperiment, TMTSubject, CursorInfo,
 from src.config import LOG_DIR
 from src.mapper.datapruebas.datapruebas_model import SubjectData
 from src.mapper.neuropruebas.neuropruebas_model import NeuropruebasTarget
+
+
+class LengthMismatchError(Exception):
+    """Excepción personalizada para listas con longitudes inconsistentes."""
+
+    def __init__(self, position_coords_len, first_clicks_len, times_len, training_stimuli_len, testing_stimuli_len):
+        self.position_coords_len = position_coords_len
+        self.first_clicks_len = first_clicks_len
+        self.times_len = times_len
+        self.training_stimuli_len = training_stimuli_len
+        self.testing_stimuli_len = testing_stimuli_len
+
+        message = (
+            "Position coordinates, first click cursor info, cursor times, and stimuli lists "
+            "must have the same length. "
+            f"position coords = {position_coords_len}, "
+            f"first clicks = {first_clicks_len}, "
+            f"times = {times_len}, "
+            f"training stimuli = {training_stimuli_len}, "
+            f"testing stimuli = {testing_stimuli_len}."
+        )
+        super().__init__(message)
+
+    def as_dict(self):
+        return {
+            "position_coords_len": self.position_coords_len,
+            "first_clicks_len": self.first_clicks_len,
+            "times_len": self.times_len,
+            "training_stimuli_len": self.training_stimuli_len,
+            "testing_stimuli_len": self.testing_stimuli_len
+        }
 
 
 class NeuropruebasFormatDetectionException(Exception):
@@ -74,29 +106,12 @@ class NeuropruebasTMTMapper(TMTMapper):
                 session_data = self._read_neuropruebas_survey(df.copy())
 
                 if "SSD" in list(df.columns):  # es sst
-                    df = df[df["trial_type"] == "custom-stop-signal-plugin"]
+                    raise ValueError("El archivo corresponde a SST, no a Neuropruebas TMT")
 
-                    df["rt"] = df["rt"].astype(float)
-                    df["raw_rt"] = df["raw_rt"].astype(float)
-                    df["onset_of_first_stimulus"] = df["onset_of_first_stimulus"].astype(
-                        float
-                    )
-                    df["onset_of_second_stimulus"] = df["onset_of_second_stimulus"].astype(
-                        float
-                    )
-                    df["SSD"] = df["SSD"].astype(float)
-                    df["trial_i"] = df["trial_i"].astype(int)
-                    df["block_i"] = df["block_i"].astype(int)
+                id_suj = self.resolve_subject_id(df, nombre_de_archivo)
 
-                    df.to_csv(f.name)
-
-                if "hash" in list(df.columns):
-                    id_suj = df["hash"].iloc[0]
-                elif "id" in list(df.columns):
-                    id_suj = df["id"].iloc[0]
-                else:
-                    id_suj = nombre_de_archivo
                 dictionary[id_suj] = df
+
                 if session_data is not None:
                     session_data_dict[id_suj] = session_data
 
@@ -106,24 +121,28 @@ class NeuropruebasTMTMapper(TMTMapper):
 
         return dictionary, session_data_dict
 
+    def resolve_subject_id(self, df, nombre_de_archivo):
+        if "hash" in list(df.columns):
+            id_suj = df["hash"].iloc[0]
+        elif "id" in list(df.columns):
+            id_suj = df["id"].iloc[0]
+        else:
+            id_suj = nombre_de_archivo
+        return id_suj
+
     def map_to_experiment(self, neuropruebas_experiment: dict, session_data_dict: dict) -> TMTExperiment:
         subjects = {}
         errors = []
+        session_data = None
         for subject_id, subject_data in neuropruebas_experiment.items():
             try:
                 session_data = session_data_dict.get(subject_id, None)
                 subjects[subject_id] = self.map_to_subject(subject_data, session_data)
             except Exception as e:
                 logging.exception(f"Error processing experiment for subject {subject_id}")
-                error_info = {
-                    "subject_id": subject_id,
-                    "error": str(e),
-                    "num_rows": len(subject_data)
-                }
-                if session_data:
-                    final_comment = session_data.get("comentarioFinal", None)
-                    if final_comment:
-                        error_info["final_comment"] = final_comment
+
+                error_info = self._build_error_info(e, session_data, subject_data, subject_id)
+
                 errors.append(error_info)
 
                 continue
@@ -137,54 +156,21 @@ class NeuropruebasTMTMapper(TMTMapper):
 
         return TMTExperiment(subjects)
 
-    def map_to_subject(self, subject_data: pd.DataFrame, session_data: dict) -> TMTSubject:
-
-        training_stimuli, testing_stimuli = self.get_stimuli(subject_data)
-        position_coordinates_for_every_trial, cursor_times_for_every_trial = self._extract_position_and_time_data(
-            subject_data)
-        first_click_cursor_info_for_every_trial = self.get_first_clicks_cursor_info(subject_data)
-
-        self._validate_trial_data(cursor_times_for_every_trial, first_click_cursor_info_for_every_trial,
-                                  position_coordinates_for_every_trial, testing_stimuli, training_stimuli)
-
-        training_trials = self.map_to_trials(
-            training_stimuli,
-            position_coordinates_for_every_trial[0:2],
-            cursor_times_for_every_trial[0:2],
-            first_click_cursor_info_for_every_trial[0:2]
-        )
-
-        testing_trials = self.map_to_trials(
-            testing_stimuli,
-            position_coordinates_for_every_trial[2:],
-            cursor_times_for_every_trial[2:],
-            first_click_cursor_info_for_every_trial[2:]
-        )
-
-        if len(testing_trials) == 0:
-            raise ValueError("Subject must have at least one testing trial")
-
-        return TMTSubject(
-            training_trials=training_trials,
-            testing_trials=testing_trials,
-            target_radius=self._extract_first_valid_numeric(subject_data, 'radius'),
-            canvas_size=self._extract_first_valid_numeric(subject_data, 'canvas_size'),
-            session_data=session_data
-        )
-
-    def _validate_trial_data(self, cursor_times_for_every_trial, first_click_cursor_info_for_every_trial,
-                             position_coordinates_for_every_trial, testing_stimuli, training_stimuli):
-
-        valid_length = (
-                len(position_coordinates_for_every_trial) == len(first_click_cursor_info_for_every_trial) and
-                len(first_click_cursor_info_for_every_trial) == len(cursor_times_for_every_trial) and
-                len(cursor_times_for_every_trial) == len(training_stimuli) + len(testing_stimuli)
-        )
-
-        if not valid_length:
-            raise ValueError(
-                "Position coordinates, first click cursor info and cursor times and total time must have the same length "
-            )
+    def _build_error_info(self, e, session_data, subject_data, subject_id):
+        error_info = {
+            "subject_id": subject_id,
+            "error": str(e),
+            "num_rows": len(subject_data)
+        }
+        if isinstance(e, LengthMismatchError):
+            error_info.update(e.as_dict())
+        if isinstance(e, ValueError):
+            error_info['value_error_message'] = e.args[0] if e.args else str(e)
+        if session_data:
+            final_comment = session_data.get("comentarioFinal", None)
+            if final_comment:
+                error_info["final_comment"] = final_comment
+        return error_info
 
     def get_stimuli(self, df):
 
@@ -227,6 +213,34 @@ class NeuropruebasTMTMapper(TMTMapper):
 
         return stimulus[0:2], stimulus[2:]
 
+    def map_to_subject(self, subject_data: pd.DataFrame, session_data: dict) -> TMTSubject:
+
+        training_stimuli, testing_stimuli = self.get_stimuli(subject_data)
+
+        testing_trials, training_trials = self.map_to_testing_training_trials(subject_data, testing_stimuli,
+                                                                              training_stimuli)
+
+        if len(testing_trials) == 0:
+            raise ValueError("Subject must have at least one testing trial")
+
+        return TMTSubject(
+            training_trials=training_trials,
+            testing_trials=testing_trials,
+            target_radius=self._extract_first_valid_numeric(subject_data, 'radius'),
+            canvas_size=self._extract_first_valid_numeric(subject_data, 'canvas_size'),
+            session_data=session_data
+        )
+
+    def map_to_testing_training_trials(self, subject_data, testing_stimuli, training_stimuli):
+        training_trials, testing_trials = (
+            self._extract_position_and_time_data(subject_data, training_stimuli, testing_stimuli))
+
+        # self._validate_trial_data(cursor_times_for_every_trial, first_click_cursor_info_for_every_trial,
+        #                         position_coordinates_for_every_trial, testing_stimuli, training_stimuli)
+
+        return testing_trials, training_trials
+
+
     def process_training_test_stimuli(self, df):
         training_stimulus = [stim["stimulus"] for stim in json.loads(df["train_stimuli"][1])]
         test_stimulus = [stim["stimulus"] for stim in json.loads(df["test_stimuli"][1])]
@@ -243,99 +257,106 @@ class NeuropruebasTMTMapper(TMTMapper):
         return processed_training_stimulus, processed_test_stimulus
 
     def _extract_position_and_time_data(
-            self, df: pd.DataFrame
-    ) -> Tuple[List[List[Tuple[float, float]]], List[List[int]]]:
+            self, df: pd.DataFrame, train_stimulus: List[List[NeuropruebasTarget]],
+            test_stimulus: List[List[NeuropruebasTarget]],
+    ) -> Tuple[List[TMTTrial], List[TMTTrial]]:
 
-        is_valid_trial = self.determine_trial_validation(df)
-        trial_mouse_positions = self.get_trial_mouse_positions(df, is_valid_trial)
-        trial_cursor_times = self.get_trial_cursor_times(df, is_valid_trial)
+        df_tmt = df[df["trial_type"] == "trail-making-test"].copy()
 
-        position_coordinates = [[eval(i) for i in t] for t in trial_mouse_positions]
+        n_trials = len(df_tmt)
+        if n_trials == 0:
+            raise ValueError("Subject csv does not contain any row with trial type 'trail-making-test'")
+        trials = []
 
-        return position_coordinates, trial_cursor_times
+        for i, (_, row) in enumerate(df_tmt.iterrows()):
+            trial_positions = self.get_trial_positions(row)
+            trial_times = self.get_trial_times(row)
+            first_click = self.get_first_click(row)
 
-    def determine_trial_validation(self, df):
-
-        position_has_quotes = (df["position"] == '"').any()
-        cursor_time_has_quotes = (df["cursor_time"] == '"').any()
-        position_has_nan = df["position"].isna().any()
-        cursor_time_has_nan = df["cursor_time"].isna().any()
-
-        quotes_means_no_trial = position_has_quotes and cursor_time_has_quotes
-        nan_means_no_trial = position_has_nan and cursor_time_has_nan
-
-        if quotes_means_no_trial:
-            return lambda trial_data: isinstance(trial_data, str) and trial_data != '"'
-        if nan_means_no_trial:
-            return lambda trial_data: isinstance(trial_data, str)
-        else:
-            raise NeuropruebasFormatDetectionException(
-                f"Unable to determine the format of the data. "
-                f"position_has_nan: {position_has_nan}, cursor_time_has_nan: {cursor_time_has_nan}, "
-                f"position_has_quotes: {position_has_quotes}, cursor_time_has_quotes: {cursor_time_has_quotes}"
+            stimuli = train_stimulus[i] if i < 2 else test_stimulus[i - 2]
+            trial = self.map_to_trial(
+                first_click=first_click,
+                positions=trial_positions,
+                times=trial_times,
+                stimuli=stimuli,
+                trial_id=f"NEUROPRUEBAS_{i}",
+                trial_order_of_appearance=i,
             )
+            trials.append(trial)
 
-    def get_trial_mouse_positions(self, df, is_valid_trial):
-        return self.get_trial_data(df, "position", is_valid_trial)
+        return trials[0:2], trials[2:]
 
-    def get_trial_cursor_times(self, df, is_valid_trial):
-        return self.get_trial_data(df, "cursor_time", is_valid_trial)
-
-    def get_trial_data(self, df, column_name, is_valid_trial):
-
-        raw_mouse_data = [trial_data for trial_data in df[column_name] if is_valid_trial(trial_data)]
-
-        return [eval(t) for t in raw_mouse_data]
-
-    def get_first_clicks_cursor_info(self, df):
-
-        df_tmt = df[df["trial_type"] == "trail-making-test"]
-
-        # TODO GIAN: por el momento usamos este preguntar a Gus con cual ir
+    def get_trial_times(self, row):
         try:
-            x_y_clicked_position = [
-                eval(i) for i in df_tmt["x_y_clicked_position"] if isinstance(i, str)
-            ]
+            raw_times = row.get("cursor_time")
+            if isinstance(raw_times, str):
+                times = literal_eval(raw_times)
+            elif isinstance(raw_times, list):
+                times = raw_times
+            else:
+                times = []
 
-            first_clicks = [
-                CursorInfo(position=Coordinate(x=x, y=y), time=t) for (x, y, t) in x_y_clicked_position
-            ]
+            # Aseguramos enteros
+            trial_times = [int(t) for t in times if pd.notna(t)]
+        except Exception:
+            trial_times = []
+        return trial_times
 
-            return first_clicks
+    def get_trial_positions(self, row):
+        try:
+            # Obtiene la lista cruda del campo 'position'
+            raw_positions = row.get("position")
 
-        except:
-            # First click position
+            # Asegura que sea lista o texto
+            if isinstance(raw_positions, str):
+                positions = literal_eval(raw_positions)
+            elif isinstance(raw_positions, list):
+                positions = raw_positions
+            else:
+                positions = []
 
-            df_tmt["X_click"] = pd.to_numeric(df["X_click"], errors="coerce")
-            df_tmt["Y_click"] = pd.to_numeric(df["Y_click"], errors="coerce")
-            df_tmt["T_click"] = pd.to_numeric(df["T_click"], errors="coerce")
+            # Convierte cada punto a tupla (x, y)
+            trial_positions = []
+            for p in positions:
+                if isinstance(p, str):
+                    try:
+                        x, y = literal_eval(p)
+                    except Exception:
+                        continue
+                elif isinstance(p, (list, tuple)) and len(p) >= 2:
+                    x, y = p[0], p[1]
+                else:
+                    continue
+                trial_positions.append((float(x), float(y)))
 
-            x_first_clicks = df_tmt["X_click"].tolist()
-            y_first_clicks = df_tmt["Y_click"].tolist()
-            t_first_clicks = df_tmt["T_click"].tolist()
+        except Exception:
+            trial_positions = []
+        return trial_positions
 
-            first_clicks_second_option = [
-                CursorInfo(position=Coordinate(x=x, y=y), time=t) for x, y, t in
-                zip(x_first_clicks, y_first_clicks, t_first_clicks)
-            ]
+    def get_first_click(self, row):
+        click_info = None
 
-            return first_clicks_second_option
+        # Intento 1: columna x_y_clicked_position
+        try:
+            if isinstance(row.get("x_y_clicked_position"), str):
+                x, y, t = eval(row["x_y_clicked_position"])
+                click_info = CursorInfo(position=Coordinate(x=x, y=y), time=t)
+        except Exception:
+            pass
 
-    def map_to_trials(self, stimulus: Optional[List[List[NeuropruebasTarget]]],
-                      position_coordinates: List[List[Tuple[float, float]]],
-                      cursor_times: List[List[int]],
-                      first_clicks_info: List[CursorInfo]
-                      ) -> List[TMTTrial]:
+        # Intento 2: columnas separadas X_click, Y_click, T_click
+        if click_info is None:
+            try:
+                x = pd.to_numeric(row.get("X_click"), errors="coerce")
+                y = pd.to_numeric(row.get("Y_click"), errors="coerce")
+                t = pd.to_numeric(row.get("T_click"), errors="coerce")
 
-        if not stimulus:
-            return []
+                if pd.notna(x) and pd.notna(y) and pd.notna(t):
+                    click_info = CursorInfo(position=Coordinate(x=x, y=y), time=t)
+            except Exception:
+                pass
 
-        return [
-            self.map_to_trial(first_click, positions, times, stimuli, trial_id=f"NEUROPRUEBAS_{str(i)}",
-                              trial_order_of_appearance=i)
-            for i, (stimuli, positions, times, first_click) in
-            enumerate(zip(stimulus, position_coordinates, cursor_times, first_clicks_info))
-        ]
+        return click_info
 
     def _extract_position_and_click_and_time_data(self, subject_data_list: List[SubjectData]):
         position_coordinates_for_every_trial = []
@@ -362,14 +383,22 @@ class NeuropruebasTMTMapper(TMTMapper):
                      times: List[int], stimuli: List[NeuropruebasTarget], trial_id: str,
                      trial_order_of_appearance: int) -> TMTTrial:
 
-        self._validate_trial_positions_and_times(positions, times)
-
         targets = [
             TMTTarget(
                 content=target.content,
                 position=Coordinate(x=target.x, y=target.y)
             ) for target in stimuli
         ]
+
+        trial_type = self._resolve_trial_type(targets)
+
+        if len(positions) == 0 or len(positions) != len(times):
+            return TMTTrial.invalid_trial(
+                trial_id=trial_id,
+                order_of_appearance=trial_order_of_appearance,
+                stimuli=targets,
+                trial_type=trial_type
+            )
 
         cursor_trail = [
             CursorInfo(
@@ -381,7 +410,7 @@ class NeuropruebasTMTMapper(TMTMapper):
         trial = TMTTrial(
             stimuli=targets,
             cursor_trail=cursor_trail,
-            trial_type=self._resolve_trial_type(targets),
+            trial_type=trial_type,
             rt=times[-1] - times[0],
             id=trial_id,
             order_of_appearance=trial_order_of_appearance,
