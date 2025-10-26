@@ -230,9 +230,9 @@ class NeuropruebasTMTMapper(TMTMapper):
         )
 
     def map_to_testing_training_trials(self, subject_data, testing_stimuli, training_stimuli):
-        position_coordinates_for_every_trial, cursor_times_for_every_trial = self._extract_position_and_time_data(
-            subject_data)
-        first_click_cursor_info_for_every_trial = self.get_first_clicks_cursor_info(subject_data)
+        position_coordinates_for_every_trial, cursor_times_for_every_trial, first_click_cursor_info_for_every_trial = (
+            self._extract_position_and_time_data(
+                subject_data))
         self._validate_trial_data(cursor_times_for_every_trial, first_click_cursor_info_for_every_trial,
                                   position_coordinates_for_every_trial, testing_stimuli, training_stimuli)
         training_trials = self.map_to_trials(
@@ -284,31 +284,35 @@ class NeuropruebasTMTMapper(TMTMapper):
 
     def _extract_position_and_time_data(
             self, df: pd.DataFrame
-    ) -> Tuple[List[List[Tuple[float, float]]], List[List[int]]]:
+    ) -> Tuple[List[List[Tuple[float, float]]], List[List[int]], List[Optional[CursorInfo]]]:
         """
-        Recolecta paso a paso las coordenadas (x, y) y los tiempos de cada trial
+        Recolecta paso a paso las coordenadas (x, y), los tiempos y el primer click de cada trial
         del tipo 'trail-making-test'.
-        Devuelve dos listas paralelas:
+
+        Devuelve tres listas paralelas (mismo largo, un elemento por trial):
           - position_coordinates: [[(x1, y1), (x2, y2), ...], ...]
           - trial_cursor_times:   [[t1, t2, ...], ...]
+          - first_clicks:         [CursorInfo(...) | None, ...]
         """
 
         df_tmt = df[df["trial_type"] == "trail-making-test"].copy()
         if df_tmt.empty:
-            return [], []
+            return [], [], []
 
         all_positions: List[List[Tuple[float, float]]] = []
         all_times: List[List[int]] = []
+        first_clicks: List[Optional["CursorInfo"]] = []
 
         for _, row in df_tmt.iterrows():
             trial_positions = self.get_trial_positions(row)
-
             trial_times = self.get_trial_times(row)
+            first_click = self.get_first_click(row)
 
             all_positions.append(trial_positions)
             all_times.append(trial_times)
+            first_clicks.append(first_click)
 
-        return all_positions, all_times
+        return all_positions, all_times, first_clicks
 
     def get_trial_times(self, row):
         try:
@@ -356,18 +360,6 @@ class NeuropruebasTMTMapper(TMTMapper):
         except Exception:
             trial_positions = []
         return trial_positions
-
-    def get_first_clicks_cursor_info(self, df):
-        df_tmt = df[df["trial_type"] == "trail-making-test"].copy()
-        first_clicks = []
-
-        for _, row in df_tmt.iterrows():
-            click_info = self.get_first_click(row)
-
-            # Si no se pudo obtener el click, agrego None
-            first_clicks.append(click_info)
-
-        return first_clicks
 
     def get_first_click(self, row):
         click_info = None
