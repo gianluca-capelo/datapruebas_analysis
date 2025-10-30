@@ -36,9 +36,10 @@ def main():
     metrics = pd.read_csv(
         '/home/gianluca/Research/datapruebas_analysis/data/hand_analysis/2025-10-17_10-42-08/processed/tmt/datapruebas/metrics.csv'
     )
+    print("Cantidad de suject_id en metrics:", len(metrics['subject_id'].unique()))
+
     nuevo_df = add_datapruebas_metadata(metrics)
 
-    print("Cantidad de suject_id en metrics:", len(metrics['subject_id'].unique()))
 
 
 if __name__ == "__main__":
