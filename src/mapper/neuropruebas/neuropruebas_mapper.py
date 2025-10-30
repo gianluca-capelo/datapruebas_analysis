@@ -137,7 +137,7 @@ class NeuropruebasTMTMapper(TMTMapper):
         for subject_id, subject_data in neuropruebas_experiment.items():
             try:
                 session_data = session_data_dict.get(subject_id, None)
-                subjects[subject_id] = self.map_to_subject(subject_data, session_data)
+                subjects[subject_id] = self.map_to_subject(subject_id, subject_data, session_data)
             except Exception as e:
                 logging.exception(f"Error processing experiment for subject {subject_id}")
 
@@ -213,9 +213,12 @@ class NeuropruebasTMTMapper(TMTMapper):
 
         return stimulus[0:2], stimulus[2:]
 
-    def map_to_subject(self, subject_data: pd.DataFrame, session_data: dict) -> TMTSubject:
+    def map_to_subject(self, subject_id, subject_data: pd.DataFrame, session_data: dict) -> TMTSubject:
 
-        training_stimuli, testing_stimuli = self.get_stimuli(subject_data)
+        try:
+            training_stimuli, testing_stimuli = self.get_stimuli(subject_data)
+        except Exception as e:
+            raise ValueError(f"Error obtaining stimuli for subject {subject_id}: {e}")
 
         testing_trials, training_trials = self.map_to_testing_training_trials(subject_data, testing_stimuli,
                                                                               training_stimuli)
@@ -240,8 +243,8 @@ class NeuropruebasTMTMapper(TMTMapper):
 
         return testing_trials, training_trials
 
-
     def process_training_test_stimuli(self, df):
+
         training_stimulus = [stim["stimulus"] for stim in json.loads(df["train_stimuli"][1])]
         test_stimulus = [stim["stimulus"] for stim in json.loads(df["test_stimuli"][1])]
 
