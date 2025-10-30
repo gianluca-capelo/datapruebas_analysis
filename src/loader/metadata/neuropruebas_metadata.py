@@ -90,13 +90,12 @@ def add_neuropruebas_metadata(metrics_df: pd.DataFrame, subject_col: str = "subj
     for subject_id in metrics_df[subject_col].unique():
         # Filtrar filas del subject_id actual
         subject_rows = metrics_df[metrics_df[subject_col] == subject_id].copy()
-        recorded_at = subject_rows["recorded_at"].iloc[0]
-        try:
-            recorded_at = datetime.strptime(recorded_at, "%Y-%m-%d %H:%M:%S")
-        except :
-            print("")
+
+        recorded_at = subject_rows["recorded_at"]
+        recorded_at = recorded_at[recorded_at.notnull()].iloc[0]
+        recorded_at = datetime.strptime(recorded_at, "%Y-%m-%d %H:%M:%S")
         if pd.isna(recorded_at) or recorded_at == "":
-            raise ValueError("No se puede inferir año de nacimiento sin fecha registrada")
+            raise ValueError("No se puede inferir año de nacimiento sin fecha registrada " + subject_id)
 
         # Obtener metadata (diccionario)
         try:
@@ -169,6 +168,8 @@ def main():
 
     print("Cantidad de metadata errors (subject_id not found):", len(metadata_errors))
     print("Metadata errors (subject_id not found):", metadata_errors)
+
+    return nuevo_df
 
 
 if __name__ == "__main__":

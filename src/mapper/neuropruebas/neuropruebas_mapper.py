@@ -103,12 +103,13 @@ class NeuropruebasTMTMapper(TMTMapper):
                 nombre_de_archivo = f.name
                 nombre_de_archivo = nombre_de_archivo.split("/")[-1]
                 df = pd.read_csv(f.name, on_bad_lines="skip")
+                id_suj = self.resolve_subject_id(df, nombre_de_archivo)
+
                 session_data = self._read_neuropruebas_survey(df.copy())
 
                 if "SSD" in list(df.columns):  # es sst
                     raise ValueError("El archivo corresponde a SST, no a Neuropruebas TMT")
 
-                id_suj = self.resolve_subject_id(df, nombre_de_archivo)
 
                 dictionary[id_suj] = df
 
