@@ -238,9 +238,6 @@ class NeuropruebasTMTMapper(TMTMapper):
         training_trials, testing_trials = (
             self._extract_position_and_time_data(subject_data, training_stimuli, testing_stimuli))
 
-        # self._validate_trial_data(cursor_times_for_every_trial, first_click_cursor_info_for_every_trial,
-        #                         position_coordinates_for_every_trial, testing_stimuli, training_stimuli)
-
         return testing_trials, training_trials
 
     def process_training_test_stimuli(self, df):
@@ -301,9 +298,10 @@ class NeuropruebasTMTMapper(TMTMapper):
 
             # Aseguramos enteros
             trial_times = [int(t) for t in times if pd.notna(t)]
+
+            return trial_times
         except Exception:
-            trial_times = []
-        return trial_times
+            return []
 
     def get_trial_positions(self, row):
         try:
@@ -332,34 +330,32 @@ class NeuropruebasTMTMapper(TMTMapper):
                     continue
                 trial_positions.append((float(x), float(y)))
 
+            return trial_positions
         except Exception:
-            trial_positions = []
-        return trial_positions
+            return []
 
     def get_first_click(self, row):
-        click_info = None
 
         # Intento 1: columna x_y_clicked_position
         try:
             if isinstance(row.get("x_y_clicked_position"), str):
                 x, y, t = eval(row["x_y_clicked_position"])
-                click_info = CursorInfo(position=Coordinate(x=x, y=y), time=t)
+                return CursorInfo(position=Coordinate(x=x, y=y), time=t)
         except Exception:
             pass
 
         # Intento 2: columnas separadas X_click, Y_click, T_click
-        if click_info is None:
-            try:
-                x = pd.to_numeric(row.get("X_click"), errors="coerce")
-                y = pd.to_numeric(row.get("Y_click"), errors="coerce")
-                t = pd.to_numeric(row.get("T_click"), errors="coerce")
+        try:
+            x = pd.to_numeric(row.get("X_click"), errors="coerce")
+            y = pd.to_numeric(row.get("Y_click"), errors="coerce")
+            t = pd.to_numeric(row.get("T_click"), errors="coerce")
 
-                if pd.notna(x) and pd.notna(y) and pd.notna(t):
-                    click_info = CursorInfo(position=Coordinate(x=x, y=y), time=t)
-            except Exception:
-                pass
+            if pd.notna(x) and pd.notna(y) and pd.notna(t):
+                return CursorInfo(position=Coordinate(x=x, y=y), time=t)
+        except Exception:
+            pass
 
-        return click_info
+        return None
 
     def _extract_position_and_click_and_time_data(self, subject_data_list: List[SubjectData]):
         position_coordinates_for_every_trial = []
