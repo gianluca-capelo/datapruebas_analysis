@@ -80,14 +80,12 @@ def add_neuropruebas_metadata(metrics_df: pd.DataFrame, subject_col: str = "subj
         try:
             metadata = get_metadata_for_subject(subject_id, metadata_df)
         except:
-            # TODO GIAN: por el momento si no encuentra metadata, poner None
             try:
                 metadata = get_metadata_from_metrics(subject_id, subject_rows.copy(), old_subjects_metadata)
             except ValueError as e:
                 logging.error(f"No se pudo inferir metadata para subject_id {subject_id}: {e}")
                 metadata_errors.add(subject_id)
                 continue
-
 
         # Agregar metadata como nuevas columnas
         for metadata_value in ["año_de_nacimiento", "genero", "nivel_educativo", "nacionalidad"]:
@@ -112,7 +110,6 @@ def add_neuropruebas_metadata(metrics_df: pd.DataFrame, subject_col: str = "subj
 
 
 def get_metadata_from_metrics(subject_id, subject_rows: pd.DataFrame, old_subjects_metadata: pd.DataFrame) -> dict:
-
     age = subject_rows["age"].iloc[0]
     if pd.isna(age) or age == "":
         raise ValueError("No se puede inferir año de nacimiento sin edad")
@@ -125,7 +122,8 @@ def get_metadata_from_metrics(subject_id, subject_rows: pd.DataFrame, old_subjec
 
     mail = subject_rows["mail"].iloc[0]
 
-    old_subject_metadata = old_subjects_metadata[old_subjects_metadata["Mail"].str.strip().str.lower() == str(mail).strip().lower()]
+    old_subject_metadata = old_subjects_metadata[
+        old_subjects_metadata["Mail"].str.strip().str.lower() == str(mail).strip().lower()]
 
     if old_subject_metadata.empty:
         raise ValueError("No se puede inferir sin metadata antigua")
@@ -141,6 +139,7 @@ def get_metadata_from_metrics(subject_id, subject_rows: pd.DataFrame, old_subjec
     }
 
     return metadata
+
 
 def get_birth_year(age: str, recorded_at: str) -> int:
     """
