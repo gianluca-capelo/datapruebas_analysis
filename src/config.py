@@ -22,6 +22,7 @@ TMT_METRICS_PATH = os.path.join(DATA_DIR, "processed", "tmt", "metrics.csv")
 
 DATAPRUEBAS_METADATA_PATH = os.path.join(DATA_DIR, "raw", "tmt", "datapruebas", "metadata", "metadata.csv")
 NEUROPRUEBAS_METADATA_PATH = os.path.join(DATA_DIR, "raw", "tmt", "neuropruebas", "metadata", "metadata.csv")
+OLD_NEUROPRUEBAS_METADATA_PATH = os.path.join(DATA_DIR, "raw", "tmt", "neuropruebas", "metadata", "Sujetxs TMT Nacho - participantes_con_genero_inferido.csv")
 TRAIN_SET_PATH = os.path.join(DATA_DIR, "hand_analysis", "train_set.csv")
 EVAL_SET_PATH = os.path.join(DATA_DIR, "hand_analysis", "eval_set.csv")
 

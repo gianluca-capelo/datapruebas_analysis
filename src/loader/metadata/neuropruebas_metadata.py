@@ -5,7 +5,7 @@ from typing import Any
 import pandas as pd
 from pandas import DataFrame
 
-from src.config import NEUROPRUEBAS_METADATA_PATH
+from src.config import NEUROPRUEBAS_METADATA_PATH, OLD_NEUROPRUEBAS_METADATA_PATH
 
 
 def retrieve_metadata(metadata_path):
@@ -66,6 +66,8 @@ def add_neuropruebas_metadata(metrics_df: pd.DataFrame, subject_col: str = "subj
 
     metadata_df = retrieve_metadata(NEUROPRUEBAS_METADATA_PATH)
 
+    old_subjects_metadata = pd.read_csv(OLD_NEUROPRUEBAS_METADATA_PATH)
+
     # Crear una lista para guardar todos los DataFrames parciales con metadata
     df_list = []
 
@@ -79,15 +81,12 @@ def add_neuropruebas_metadata(metrics_df: pd.DataFrame, subject_col: str = "subj
             metadata = get_metadata_for_subject(subject_id, metadata_df)
         except:
             # TODO GIAN: por el momento si no encuentra metadata, poner None
-            logging.warning(f"No se encontró metadata para subject_id: {subject_id}")
-
             try:
-                metadata = get_metadata_from_metrics(subject_rows.copy())
+                metadata = get_metadata_from_metrics(subject_id, subject_rows.copy(), old_subjects_metadata)
             except ValueError as e:
-                print(f"No se pudo inferir metadata para subject_id: {subject_id}, poniendo None")
-                print(e)
-                metadata = {"año_de_nacimiento": None, "genero": None, "nivel_educativo": None, "nacionalidad": None}
+                logging.error(f"No se pudo inferir metadata para subject_id {subject_id}: {e}")
                 metadata_errors.add(subject_id)
+                continue
 
 
         # Agregar metadata como nuevas columnas
@@ -112,7 +111,8 @@ def add_neuropruebas_metadata(metrics_df: pd.DataFrame, subject_col: str = "subj
     return result_df, metadata_errors
 
 
-def get_metadata_from_metrics(subject_rows: pd.DataFrame) -> dict:
+def get_metadata_from_metrics(subject_id, subject_rows: pd.DataFrame, old_subjects_metadata: pd.DataFrame) -> dict:
+
     age = subject_rows["age"].iloc[0]
     if pd.isna(age) or age == "":
         raise ValueError("No se puede inferir año de nacimiento sin edad")
@@ -123,8 +123,24 @@ def get_metadata_from_metrics(subject_rows: pd.DataFrame) -> dict:
 
     birth_year = get_birth_year(age, recorded_at)
 
-    return {"año_de_nacimiento": birth_year, "genero": None, "nivel_educativo": None, "nacionalidad": None}
+    mail = subject_rows["mail"].iloc[0]
 
+    old_subject_metadata = old_subjects_metadata[old_subjects_metadata["Mail"].str.strip().str.lower() == str(mail).strip().lower()]
+
+    if old_subject_metadata.empty:
+        raise ValueError("No se puede inferir sin metadata antigua")
+    gender = old_subject_metadata["genero"].iloc[0]
+    education_level = old_subject_metadata["nivel_educativo"].iloc[0]
+    nationality = old_subject_metadata["pais"].iloc[0]
+
+    metadata = {
+        'año_de_nacimiento': birth_year,
+        'genero': gender,
+        'nivel_educativo': education_level,
+        'nacionalidad': nationality
+    }
+
+    return metadata
 
 def get_birth_year(age: str, recorded_at: str) -> int:
     """
@@ -140,7 +156,7 @@ def get_birth_year(age: str, recorded_at: str) -> int:
 
 def main():
     metrics = pd.read_csv(
-        '/home/gianluca/Research/datapruebas_analysis/data/hand_analysis/2025-10-16_09-59-55/processed/tmt/neuropruebas/metrics.csv'
+        '/home/gianluca/Research/datapruebas_analysis/data/hand_analysis/2025-10-30_08-48-59/processed/tmt/neuropruebas/metrics.csv'
     )
     nuevo_df, metadata_errors = add_neuropruebas_metadata(metrics, subject_col='subject_id')
 
