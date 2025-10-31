@@ -1,12 +1,11 @@
 import logging
+from datetime import datetime, timezone
 
-import pandas as pd
 from neurotask.tmt.mapper.mapper import TMTMapper
 from neurotask.tmt.metrics.distance_calculation import calculate_distance
 from neurotask.tmt.model.tmt_model import *
 
 from src.mapper.datapruebas.datapruebas_model import *
-from datetime import datetime, timezone
 
 
 def parse_iso_datetime(date_str: str) -> datetime:
@@ -73,7 +72,6 @@ class DatapruebasTMTMapper(TMTMapper):
             cursor_times_for_every_trial
         ) = self._extract_position_and_click_and_time_data(subject_data_list)
 
-
         training_trials = self.map_to_trials(
             training_stimuli,
             position_coordinates_for_every_trial[0:2],
@@ -98,19 +96,6 @@ class DatapruebasTMTMapper(TMTMapper):
             canvas_size=self._extract_first_valid(subject_data_list, 'canvas_size'),
             session_data=self._extract_session_data(subject_data_list, start_date)
         )
-
-    # def _validate_trial_data(self, cursor_times_for_every_trial, first_click_cursor_info_for_every_trial,
-    #                          position_coordinates_for_every_trial):
-    #     valid_data = (
-    #             len(position_coordinates_for_every_trial) == len(first_click_cursor_info_for_every_trial) and
-    #             len(first_click_cursor_info_for_every_trial) == len(cursor_times_for_every_trial)
-    #     )
-    #     if not valid_data:
-    #         raise ValueError(
-    #             f"Position coordinates, first click cursor info and cursor times and total time must have the same length" +
-    #             f"position coords =  {len(position_coordinates_for_every_trial)}, " +
-    #             f"first clicks = {len(first_click_cursor_info_for_every_trial)}, " +
-    #             f"times = {len(cursor_times_for_every_trial)} respectively.")
 
     def map_to_trials(self, stimulus: Optional[List[StimulusTrial]],
                       position_coordinates: List[List[Tuple[float, float]]],
