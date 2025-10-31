@@ -5,6 +5,15 @@ from neurotask.tmt.metrics.distance_calculation import calculate_distance
 from neurotask.tmt.model.tmt_model import *
 
 from src.mapper.datapruebas.datapruebas_model import *
+from datetime import datetime, timezone
+
+def parse_iso_datetime(date_str: str) -> datetime:
+    """
+    Convierte una cadena ISO 8601 (ej. '2024-09-05T21:31:22.375Z')
+    a un objeto datetime con zona horaria UTC.
+    """
+    # La Z al final indica que está en UTC
+    return datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
 
 
 class DatapruebasTMTMapper(TMTMapper):
@@ -32,7 +41,8 @@ class DatapruebasTMTMapper(TMTMapper):
                     continue
                 try:
 
-                    subjects[experiment.subject_id] = self.map_to_subject(experiment.records[0])
+                    start_date = parse_iso_datetime(experiment.start_date)
+                    subjects[experiment.subject_id] = self.map_to_subject(experiment.records[0], start_date)
 
                 except IndexError:
                     logging.exception(f"Error processing experiment for subject {experiment.subject_id}")
@@ -44,7 +54,7 @@ class DatapruebasTMTMapper(TMTMapper):
     def _has_finished_status(self, experiment):
         return experiment.experiment_status == "Finalizado"
 
-    def map_to_subject(self, record: Record) -> TMTSubject:
+    def map_to_subject(self, record: Record, start_date: datetime) -> TMTSubject:
         subject_data_list = record.data
 
         (
@@ -78,7 +88,7 @@ class DatapruebasTMTMapper(TMTMapper):
             testing_trials=testing_trials,
             target_radius=self._extract_first_valid(subject_data_list, 'radius'),
             canvas_size=self._extract_first_valid(subject_data_list, 'canvas_size'),
-            session_data=self._extract_session_data(subject_data_list)
+            session_data=self._extract_session_data(subject_data_list, start_date)
         )
 
     def _validate_trial_data(self, cursor_times_for_every_trial, first_click_cursor_info_for_every_trial,
@@ -176,7 +186,7 @@ class DatapruebasTMTMapper(TMTMapper):
     def _extract_first_valid(self, data_list: List[SubjectData], attribute: str):
         return next((getattr(data, attribute) for data in data_list if getattr(data, attribute) is not None), None)
 
-    def _extract_session_data(self, subject_data_list: List[SubjectData]) -> Optional[dict]:
+    def _extract_session_data(self, subject_data_list: List[SubjectData], start_date: datetime) -> Optional[dict]:
         session_data = None
         for subject_data in subject_data_list:
             if isinstance(subject_data.response, ResponseDetail):
@@ -187,7 +197,8 @@ class DatapruebasTMTMapper(TMTMapper):
                     "alcohol_drugs": subject_data.response.alcohol_drogas,
                     "treatment": subject_data.response.tratamiento,
                     "pad_usage": subject_data.response.usoDelPad,
-                    "final_comment": subject_data.response.comentarioFinal
+                    "final_comment": subject_data.response.comentarioFinal,
+                    "start_date": start_date.isoformat()
                 }
                 break
         return session_data

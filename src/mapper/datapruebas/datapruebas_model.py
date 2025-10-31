@@ -105,6 +105,7 @@ class Experiment(BaseModel):
     subject_id: str = Field(alias='subject')
     experiment_status: str = Field(alias='status')
     records: List[Record]
+    start_date: str
 
 
 class ExperimentRunCollection(BaseModel):
