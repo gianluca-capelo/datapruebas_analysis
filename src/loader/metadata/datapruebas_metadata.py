@@ -24,22 +24,35 @@ def add_datapruebas_metadata(metrics_df):
 
     merged_df = pd.merge(metrics_df, metadata_df, left_on='subject_id', right_on='id', how='inner')
 
-    merged_df = merged_df.drop(columns=['id'])
-
-
-    #transform birthdate to age
+    # transform birthdate to age
     from datetime import datetime
 
-    #TODO GIAN: COMPLETAR ESTO BIRTHDATE
-    def calculate_age(birthdate_str, start_date):
+    # TODO GIAN: COMPLETAR ESTO BIRTHDATE
+
+    def calculate_age(birthdate_str, recorded_at_str):
         try:
-            birthdate = datetime.strptime(birthdate_str, "%Y-%m-%d")
-            recorded_at = datetime.fromisoformat(start_date)
-            age = recorded_at.year - birthdate.year - ((recorded_at.month, recorded_at.day) < (birthdate.month, birthdate.day))
+            if pd.isna(birthdate_str) or pd.isna(recorded_at_str):
+                return None
+
+            # birthdate tiene formato "YYYY-MM-DD"
+            birthdate = datetime.strptime(str(birthdate_str), "%Y-%m-%d")
+
+            # recorded_at puede tener formato ISO con zona horaria
+            recorded_at = datetime.fromisoformat(str(recorded_at_str).replace("Z", "+00:00"))
+
+            age = recorded_at.year - birthdate.year - (
+                    (recorded_at.month, recorded_at.day) < (birthdate.month, birthdate.day)
+            )
             return age
         except Exception:
-            return None
+            raise ValueError("NO se puede calcular edad")
 
+    merged_df["age"] = merged_df.apply(
+        lambda row: calculate_age(row["birthdate"], row["start_date"]),
+        axis=1
+    )
+
+    merged_df = merged_df.drop(columns=['id', 'age'])
 
     return merged_df
 
