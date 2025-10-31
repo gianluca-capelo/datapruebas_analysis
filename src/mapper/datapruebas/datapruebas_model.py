@@ -42,6 +42,9 @@ class SubjectData(BaseModel):
     accuracy: Optional[int] = None
     rt: Optional[float] = None
 
+    #Usar estos para mapear
+    trial_index: Optional[int] = None
+
     # TODO GIAN: Charlar con gus un poco mas sobre que son estos 3 campos
     X_click: Optional[int] = None
     Y_click: Optional[int] = None
@@ -54,7 +57,6 @@ class SubjectData(BaseModel):
     failed_audio: Optional[List[str]] = None
     failed_video: Optional[List[str]] = None
     trial_type: Optional[str] = None
-    trial_index: Optional[int] = None
     time_elapsed: Optional[int] = None
     internal_node_id: Optional[str] = None
     mean_rt: Optional[int] = None
