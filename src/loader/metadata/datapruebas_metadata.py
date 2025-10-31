@@ -52,7 +52,7 @@ def add_datapruebas_metadata(metrics_df):
         axis=1
     )
 
-    merged_df = merged_df.drop(columns=['id', 'age'])
+    merged_df = merged_df.drop(columns=['id', 'birthdate'])
 
     column_renames = {
         "level_of_education": "education_level"
