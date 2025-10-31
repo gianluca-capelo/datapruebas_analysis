@@ -165,14 +165,22 @@ class DatapruebasTMTMapper(TMTMapper):
                      times: List[int], stimuli: StimulusTrial, trial_id: str,
                      trial_order_of_appearance: int) -> TMTTrial:
 
-        self._validate_trial_positions_and_times(positions, times)
-
         targets = [
             TMTTarget(
                 content=target.content,
                 position=Coordinate(x=target.x, y=target.y)
             ) for target in stimuli.targets
         ]
+
+        trial_type = self._resolve_trial_type(targets)
+
+        if len(positions) == 0 or len(positions) != len(times):
+            return TMTTrial.invalid_trial(
+                trial_id=trial_id,
+                order_of_appearance=trial_order_of_appearance,
+                stimuli=targets,
+                trial_type=trial_type
+            )
 
         cursor_trail = [
             CursorInfo(
@@ -193,12 +201,6 @@ class DatapruebasTMTMapper(TMTMapper):
         )
 
         return trial
-
-    def _validate_trial_positions_and_times(self, positions, times):
-        if len(positions) == 0:
-            raise ValueError("Positions must not be empty")
-        if len(positions) != len(times):
-            raise ValueError("Positions and times must have the same length")
 
     def _resolve_trial_type(self, targets: List[TMTTarget]) -> TrialType:
         return TrialType.PART_B if targets[1].content == 'A' else TrialType.PART_A
