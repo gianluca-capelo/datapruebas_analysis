@@ -1,11 +1,12 @@
 import logging
+from datetime import datetime, timezone
 
 from neurotask.tmt.mapper.mapper import TMTMapper
 from neurotask.tmt.metrics.distance_calculation import calculate_distance
 from neurotask.tmt.model.tmt_model import *
 
 from src.mapper.datapruebas.datapruebas_model import *
-from datetime import datetime, timezone
+
 
 def parse_iso_datetime(date_str: str) -> datetime:
     """
@@ -57,24 +58,29 @@ class DatapruebasTMTMapper(TMTMapper):
     def map_to_subject(self, record: Record, start_date: datetime) -> TMTSubject:
         subject_data_list = record.data
 
+        if len(subject_data_list) < 2:
+            raise ValueError("Subject must have at least two trials (training and testing)")
+        training_stimuli = subject_data_list[1].training_stimuli
+        testing_stimuli = subject_data_list[1].testing_stimuli
+
+        if training_stimuli is None or testing_stimuli is None:
+            raise ValueError("Subject must have both training and testing stimuli")
+
         (
             position_coordinates_for_every_trial,
             first_click_cursor_info_for_every_trial,
             cursor_times_for_every_trial
         ) = self._extract_position_and_click_and_time_data(subject_data_list)
 
-        self._validate_trial_data(cursor_times_for_every_trial, first_click_cursor_info_for_every_trial,
-                                  position_coordinates_for_every_trial)
-
         training_trials = self.map_to_trials(
-            subject_data_list[1].training_stimuli,
+            training_stimuli,
             position_coordinates_for_every_trial[0:2],
             cursor_times_for_every_trial[0:2],
             first_click_cursor_info_for_every_trial[0:2]
         )
 
         testing_trials = self.map_to_trials(
-            subject_data_list[1].testing_stimuli,
+            testing_stimuli,
             position_coordinates_for_every_trial[2:],
             cursor_times_for_every_trial[2:],
             first_click_cursor_info_for_every_trial[2:]
@@ -90,19 +96,6 @@ class DatapruebasTMTMapper(TMTMapper):
             canvas_size=self._extract_first_valid(subject_data_list, 'canvas_size'),
             session_data=self._extract_session_data(subject_data_list, start_date)
         )
-
-    def _validate_trial_data(self, cursor_times_for_every_trial, first_click_cursor_info_for_every_trial,
-                             position_coordinates_for_every_trial):
-        valid_data = (
-                len(position_coordinates_for_every_trial) == len(first_click_cursor_info_for_every_trial) and
-                len(first_click_cursor_info_for_every_trial) == len(cursor_times_for_every_trial)
-        )
-        if not valid_data:
-            raise ValueError(
-                f"Position coordinates, first click cursor info and cursor times and total time must have the same length" +
-                f"position coords =  {len(position_coordinates_for_every_trial)}, " +
-                f"first clicks = {len(first_click_cursor_info_for_every_trial)}, " +
-                f"times = {len(cursor_times_for_every_trial)} respectively.")
 
     def map_to_trials(self, stimulus: Optional[List[StimulusTrial]],
                       position_coordinates: List[List[Tuple[float, float]]],
@@ -125,19 +118,31 @@ class DatapruebasTMTMapper(TMTMapper):
         first_click_cursor_info_for_every_trial = []
         cursor_time: List[List[int]] = []
 
+        subject_data_list = [sd for sd in subject_data_list if sd.trial_type == 'trail-making-test']
+
+        if len(subject_data_list) == 0:
+            raise ValueError("Subject data must have at least one trial")
+
         for subject_data in subject_data_list:
-            if subject_data.position_coordinates is not None:
-                position_coordinates_for_every_trial.append(subject_data.position_coordinates)
-                x_y_clicked_position = subject_data.x_y_clicked_position
-                if x_y_clicked_position is not None:
-                    first_click_cursor_info_for_every_trial.append(CursorInfo(
-                        position=Coordinate(x=x_y_clicked_position[0], y=x_y_clicked_position[1]),
-                        time=x_y_clicked_position[2]
-                    ))
-                else:
-                    first_click_cursor_info_for_every_trial.append(None)
-                if subject_data.cursor_time is not None:
-                    cursor_time.append(subject_data.cursor_time)
+
+            missing_info = (subject_data.position_coordinates is None
+                            or subject_data.cursor_time is None)
+
+            if missing_info:
+                raise ValueError("Subject has missing info")
+
+            position_coordinates_for_every_trial.append(subject_data.position_coordinates)
+
+            cursor_time.append(subject_data.cursor_time)
+
+            x_y_clicked_position = subject_data.x_y_clicked_position
+            if x_y_clicked_position is not None:
+                first_click_cursor_info_for_every_trial.append(CursorInfo(
+                    position=Coordinate(x=x_y_clicked_position[0], y=x_y_clicked_position[1]),
+                    time=x_y_clicked_position[2]
+                ))
+            else:
+                first_click_cursor_info_for_every_trial.append(None)
 
         return position_coordinates_for_every_trial, first_click_cursor_info_for_every_trial, cursor_time
 
@@ -145,14 +150,22 @@ class DatapruebasTMTMapper(TMTMapper):
                      times: List[int], stimuli: StimulusTrial, trial_id: str,
                      trial_order_of_appearance: int) -> TMTTrial:
 
-        self._validate_trial_positions_and_times(positions, times)
-
         targets = [
             TMTTarget(
                 content=target.content,
                 position=Coordinate(x=target.x, y=target.y)
             ) for target in stimuli.targets
         ]
+
+        trial_type = self._resolve_trial_type(targets)
+
+        if len(positions) == 0 or len(positions) != len(times):
+            return TMTTrial.invalid_trial(
+                trial_id=trial_id,
+                order_of_appearance=trial_order_of_appearance,
+                stimuli=targets,
+                trial_type=trial_type
+            )
 
         cursor_trail = [
             CursorInfo(
@@ -173,12 +186,6 @@ class DatapruebasTMTMapper(TMTMapper):
         )
 
         return trial
-
-    def _validate_trial_positions_and_times(self, positions, times):
-        if len(positions) == 0:
-            raise ValueError("Positions must not be empty")
-        if len(positions) != len(times):
-            raise ValueError("Positions and times must have the same length")
 
     def _resolve_trial_type(self, targets: List[TMTTarget]) -> TrialType:
         return TrialType.PART_B if targets[1].content == 'A' else TrialType.PART_A
