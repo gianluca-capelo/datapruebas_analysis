@@ -274,6 +274,9 @@ class NeuropruebasTMTMapper(TMTMapper):
             trial_times = self.get_trial_times(row)
             first_click = self.get_first_click(row)
 
+            if first_click is None:
+                first_click = self.get_default_first_trial(trial_positions, trial_times)
+
             stimuli = train_stimulus[i] if i < 2 else test_stimulus[i - 2]
             trial = self.map_to_trial(
                 first_click=first_click,
@@ -286,6 +289,12 @@ class NeuropruebasTMTMapper(TMTMapper):
             trials.append(trial)
 
         return trials[0:2], trials[2:]
+
+    def get_default_first_trial(self, trial_positions, trial_times):
+        first_position = trial_positions[0] if len(trial_positions) > 0 else (0.0, 0.0)
+        first_time = trial_times[0] if len(trial_times) > 0 else 0
+        first_click = CursorInfo(position=Coordinate(x=first_position[0], y=first_position[1]), time=first_time)
+        return first_click
 
     def get_trial_times(self, row):
         try:

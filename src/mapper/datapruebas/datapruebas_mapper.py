@@ -106,12 +106,24 @@ class DatapruebasTMTMapper(TMTMapper):
         if not stimulus:
             return []
 
-        return [
-            self.map_to_trial(first_click, positions, times, stimuli, trial_id=f"DATAPRUEBAS_{str(i)}",
-                              trial_order_of_appearance=i)
-            for i, (stimuli, positions, times, first_click) in
-            enumerate(zip(stimulus, position_coordinates, cursor_times, first_clicks_info))
-        ]
+        trials = []
+
+        for i, (stimuli, positions, times, first_click) in enumerate(
+                zip(stimulus, position_coordinates, cursor_times, first_clicks_info)):
+
+            if first_click is None:
+                first_click = self.get_default_first_trial(positions, times)
+
+            trials.append(self.map_to_trial(first_click, positions, times, stimuli, trial_id=f"DATAPRUEBAS_{str(i)}",
+                                            trial_order_of_appearance=i))
+
+        return trials
+
+    def get_default_first_trial(self, trial_positions, trial_times):
+        first_position = trial_positions[0] if len(trial_positions) > 0 else (0.0, 0.0)
+        first_time = trial_times[0] if len(trial_times) > 0 else 0
+        first_click = CursorInfo(position=Coordinate(x=first_position[0], y=first_position[1]), time=first_time)
+        return first_click
 
     def _extract_position_and_click_and_time_data(self, subject_data_list: List[SubjectData]):
         position_coordinates_for_every_trial = []
