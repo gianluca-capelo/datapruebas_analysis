@@ -39,3 +39,24 @@ def concat_dataframes(
 
     # Concatenar
     return pd.concat([df1_aligned, df2_aligned], ignore_index=True)
+
+
+
+def main():
+    np_metrics = pd.read_csv(
+        '/home/gianluca/Research/datapruebas_analysis/data/hand_analysis/2025-11-04_09-43-00/processed/tmt/neuropruebas/metrics.csv'
+    )
+
+    dp_metrics = pd.read_csv(
+        '/home/gianluca/Research/datapruebas_analysis/data/hand_analysis/2025-11-04_09-43-00/processed/tmt/datapruebas/metrics.csv'
+    )
+
+    np_metrics["experiment_origin"] = "neuropruebas"
+    dp_metrics["experiment_origin"] = "datapruebas"
+
+
+    return concat_dataframes(np_metrics, dp_metrics)
+
+
+if __name__ == "__main__":
+    main()

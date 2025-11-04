@@ -13,7 +13,7 @@ def parse_iso_datetime(date_str: str) -> datetime:
     Convierte una cadena ISO 8601 (ej. '2024-09-05T21:31:22.375Z')
     a un objeto datetime con zona horaria UTC.
     """
-    # La Z al final indica que está en UTC
+    # La Z al final indica que está en UTCN
     return datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
 
 
