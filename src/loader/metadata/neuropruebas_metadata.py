@@ -118,6 +118,9 @@ def add_neuropruebas_metadata(metrics_df: pd.DataFrame, subject_col: str = "subj
     # Concatenar todos los resultados
     result_df = pd.concat(df_list, ignore_index=True)
 
+    if "age" in result_df.columns:
+        result_df = result_df.drop(columns=["age"])
+
     column_renames = {
         "edad": "age",
         "genero": "gender",

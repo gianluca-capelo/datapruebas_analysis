@@ -1,5 +1,8 @@
 import pandas as pd
 
+from src.loader.metadata.datapruebas_metadata import add_datapruebas_metadata
+from src.loader.metadata.neuropruebas_metadata import add_neuropruebas_metadata
+
 
 def concat_dataframes(
         df1: pd.DataFrame,
@@ -33,6 +36,11 @@ def concat_dataframes(
     extras = [c for c in cols2 if c not in cols1]
     all_cols = cols1 + extras
 
+    dup1 = df1.columns[df1.columns.duplicated()].tolist()
+    dup2 = df2.columns[df2.columns.duplicated()].tolist()
+    if dup1 or dup2:
+        raise ValueError(f"df1 columnas duplicadas: {dup1} | df2 columnas duplicadas: {dup2}")
+
     # Alinear ambos DataFrames al mismo conjunto de columnas
     df1_aligned = df1.reindex(columns=all_cols)
     df2_aligned = df2.reindex(columns=all_cols)
@@ -40,23 +48,3 @@ def concat_dataframes(
     # Concatenar
     return pd.concat([df1_aligned, df2_aligned], ignore_index=True)
 
-
-
-def main():
-    np_metrics = pd.read_csv(
-        '/home/gianluca/Research/datapruebas_analysis/data/hand_analysis/2025-11-04_09-43-00/processed/tmt/neuropruebas/metrics.csv'
-    )
-
-    dp_metrics = pd.read_csv(
-        '/home/gianluca/Research/datapruebas_analysis/data/hand_analysis/2025-11-04_09-43-00/processed/tmt/datapruebas/metrics.csv'
-    )
-
-    np_metrics["experiment_origin"] = "neuropruebas"
-    dp_metrics["experiment_origin"] = "datapruebas"
-
-
-    return concat_dataframes(np_metrics, dp_metrics)
-
-
-if __name__ == "__main__":
-    main()
