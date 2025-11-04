@@ -118,6 +118,9 @@ def add_neuropruebas_metadata(metrics_df: pd.DataFrame, subject_col: str = "subj
     # Concatenar todos los resultados
     result_df = pd.concat(df_list, ignore_index=True)
 
+    if "age" in result_df.columns:
+        result_df = result_df.drop(columns=["age"])
+
     column_renames = {
         "edad": "age",
         "genero": "gender",
@@ -160,8 +163,11 @@ def get_metadata_from_metrics(subject_id, subject_rows: pd.DataFrame, old_subjec
 
 def main():
     metrics = pd.read_csv(
-        '/home/gianluca/Research/datapruebas_analysis/data/hand_analysis/2025-10-30_08-48-59/processed/tmt/neuropruebas/metrics.csv'
+        '/home/gianluca/Research/datapruebas_analysis/data/hand_analysis/2025-11-04_09-43-00/processed/tmt/neuropruebas/metrics.csv'
     )
+
+
+
     print("Cantidad de suject_id en metrics:", len(metrics['subject_id'].unique()))
 
     nuevo_df, metadata_errors = add_neuropruebas_metadata(metrics, subject_col='subject_id')

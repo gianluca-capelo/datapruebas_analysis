@@ -13,17 +13,23 @@ def parse_iso_datetime(date_str: str) -> datetime:
     Convierte una cadena ISO 8601 (ej. '2024-09-05T21:31:22.375Z')
     a un objeto datetime con zona horaria UTC.
     """
-    # La Z al final indica que está en UTC
+    # La Z al final indica que está en UTCN
     return datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
 
 
 class DatapruebasTMTMapper(TMTMapper):
 
-    def map(self, data_path: str, metadata_path: Optional[str] = None) -> TMTExperiment:
+    def map(self, data_path: str) -> TMTExperiment:
 
         experiment = self._read_datapruebas_output(data_path)
 
-        return self.map_to_experiment(experiment)
+        print(f"Mapping {len(experiment.experiments)} subjects...")
+
+        tmt_experiment = self.map_to_experiment(experiment)
+
+        print(f"Mapped {len(tmt_experiment.subjects)} valid subjects.")
+
+        return tmt_experiment
 
     def _read_datapruebas_output(self, file_path: str) -> ExperimentRunCollection:
         with open(file_path, "r") as file:
