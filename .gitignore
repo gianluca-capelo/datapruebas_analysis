@@ -211,3 +211,5 @@ logs
 results
 
 .idea/
+
+.vscode/
