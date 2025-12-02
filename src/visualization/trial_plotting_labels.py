@@ -2,20 +2,8 @@ import matplotlib.pyplot as plt
 from neurotask.tmt.model.tmt_model import TMTTrial
 
 
-def heigth_to_pixels(x, y):
-    """Convert normalized height coordinates to pixels (for neuropruebas data)."""
-    x = ((x + 8 / 9) / (16 / 9)) * 1920
-    y = (0.5 - y) * 1080
-    return x, y
-
-
-def height_radius_to_pixels(r):
-    """Convert normalized radius to pixels (for neuropruebas data)."""
-    return r * 1080  # porque el eje height total es 1.0 -> 1080px
-
-
 def is_pixel_coordinates(trial: TMTTrial) -> bool:
-    """Detect if the trial data is already in pixel coordinates.
+    """Detect if the trial data is in pixel coordinates.
     
     If coordinates are > 10, assume they're in pixels.
     Normalized coordinates are typically in range [-1, 1].
@@ -39,13 +27,17 @@ def plot_with_labels_scatter(trial: TMTTrial, target_radius: float, labels: list
     pixel_coords = is_pixel_coordinates(trial)
     
     if pixel_coords:
-        # Datos ya en píxeles (datapruebas)
+        # Datos ya en píxeles (datapruebas y neuropruebas)
         cursor_coords = [(p.position.x, p.position.y) for p in cursor_trail]
         radius_px = target_radius
     else:
-        # Datos normalizados (neuropruebas) - convertir a píxeles
-        cursor_coords = [heigth_to_pixels(p.position.x, p.position.y) for p in cursor_trail]
-        radius_px = height_radius_to_pixels(target_radius)
+        # Coordenadas no esperadas - lanzar excepción
+        first_pos = cursor_trail[0].position if cursor_trail else None
+        raise ValueError(
+            f"Unexpected coordinate format detected. First position: "
+            f"({first_pos.x if first_pos else 'N/A'}, {first_pos.y if first_pos else 'N/A'}). "
+            f"Expected pixel coordinates (values > 10)."
+        )
     
     cursor_x, cursor_y = zip(*cursor_coords)
 
@@ -61,20 +53,14 @@ def plot_with_labels_scatter(trial: TMTTrial, target_radius: float, labels: list
 
     # Dibujar los targets
     for target in trial.stimuli:
-        if pixel_coords:
-            tx, ty = target.position.x, target.position.y
-        else:
-            tx, ty = heigth_to_pixels(target.position.x, target.position.y)
+        tx, ty = target.position.x, target.position.y
         circle = plt.Circle((tx, ty), radius_px, color='steelblue', alpha=0.3, zorder=5)
         ax.add_patch(circle)
         ax.text(tx, ty, target.content, color='black', fontsize=8, ha='center', va='center', zorder=6)
 
     # Marcar el primer clic
     if plot_start and trial.start:
-        if pixel_coords:
-            sx, sy = trial.start.position.x, trial.start.position.y
-        else:
-            sx, sy = heigth_to_pixels(trial.start.position.x, trial.start.position.y)
+        sx, sy = trial.start.position.x, trial.start.position.y
         ax.scatter(sx, sy, color='cyan', edgecolor='black', s=100, marker='o', alpha=0.3, label='First Click', zorder=7)
 
     # Leyenda
@@ -98,4 +84,3 @@ def plot_with_labels_scatter(trial: TMTTrial, target_radius: float, labels: list
     ax.set_aspect('equal', adjustable='box')
 
     return fig
-
