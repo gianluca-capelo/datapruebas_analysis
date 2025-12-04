@@ -5,8 +5,12 @@ Plot trials highlighting points with anomalous cursor speeds.
 Uses get_cursor_trail_from_start() for consistency with other analysis.
 
 Usage:
+    # Spatial plot (X/Y position)
     python -m src.visualization.plot_speed_anomalies --subject "UUID" --trial "TRIAL_ID"
     python -m src.visualization.plot_speed_anomalies --subject "UUID" --trial "TRIAL_ID" --threshold 5
+    
+    # Temporal plot (time vs distance)
+    python -m src.visualization.plot_speed_anomalies --subject "UUID" --trial "TRIAL_ID" --mode temporal
 """
 
 import argparse
@@ -159,6 +163,113 @@ def plot_trial_with_speed_anomalies(trial, target_radius, threshold):
     return fig, len(anomaly_x), len(cursor_trail)
 
 
+def plot_distance_over_time(trial, threshold):
+    """Plot distance and speed over time, highlighting speed anomalies.
+    
+    Creates three subplots:
+    - Top: Cumulative distance vs time (line plot)
+    - Middle: Instantaneous distance vs time (bar plot)
+    - Bottom: Speed vs time (line plot with threshold)
+    
+    Args:
+        trial: TMTTrial object
+        threshold: Speed threshold in px/ms
+    
+    Returns:
+        tuple: (fig, anomaly_count, total_points)
+    """
+    cursor_trail = trial.get_cursor_trail_from_start()
+    if not cursor_trail or len(cursor_trail) < 2:
+        return None
+    
+    # Extract times
+    times = [p.time for p in cursor_trail]
+    
+    # Calculate distances and speeds
+    distances = [0]  # First point has no distance
+    cumulative = [0]
+    speeds = [0]
+    
+    for i in range(1, len(cursor_trail)):
+        curr = cursor_trail[i]
+        prev = cursor_trail[i-1]
+        
+        dx = curr.position.x - prev.position.x
+        dy = curr.position.y - prev.position.y
+        dist = math.sqrt(dx**2 + dy**2)
+        
+        distances.append(dist)
+        cumulative.append(cumulative[-1] + dist)
+        
+        dt = curr.time - prev.time
+        speeds.append(dist / dt if dt > 0 else 0)
+    
+    # Identify anomaly indices
+    anomaly_idx = [i for i, s in enumerate(speeds) if s > threshold]
+    
+    # Create figure with three subplots
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(14, 10), sharex=True)
+    
+    # Plot 1: Cumulative distance
+    ax1.plot(times, cumulative, 'b-', linewidth=1.5, label='Distancia acumulada')
+    if anomaly_idx:
+        ax1.scatter(
+            [times[i] for i in anomaly_idx],
+            [cumulative[i] for i in anomaly_idx],
+            c='red', s=100, marker='X', zorder=5,
+            label=f'Anomalía (>{threshold} px/ms)'
+        )
+    ax1.set_ylabel('Distancia acumulada (px)')
+    ax1.set_title(
+        f'Trial {trial.id} - Métricas Temporales\n'
+        f'{len(anomaly_idx)} anomalías / {len(cursor_trail)} puntos | Threshold: {threshold} px/ms'
+    )
+    ax1.legend(loc='upper left')
+    ax1.grid(True, alpha=0.3)
+    
+    # Plot 2: Instantaneous distance (per sample)
+    bar_colors = ['red' if i in anomaly_idx else 'steelblue' for i in range(len(times))]
+    ax2.bar(times, distances, width=15, color=bar_colors, alpha=0.7)
+    ax2.set_ylabel('Distancia instantánea (px)')
+    ax2.grid(True, alpha=0.3)
+    
+    # Add legend for bar chart
+    from matplotlib.patches import Patch
+    legend_elements = [
+        Patch(facecolor='steelblue', alpha=0.7, label='Normal'),
+        Patch(facecolor='red', alpha=0.7, label=f'Anomalía (>{threshold} px/ms)')
+    ]
+    ax2.legend(handles=legend_elements, loc='upper right')
+    
+    # Plot 3: Speed vs time
+    ax3.plot(times, speeds, 'g-', linewidth=1, alpha=0.7, label='Velocidad')
+    ax3.axhline(y=threshold, color='red', linestyle='--', linewidth=2, 
+                label=f'Threshold ({threshold} px/ms)')
+    if anomaly_idx:
+        ax3.scatter(
+            [times[i] for i in anomaly_idx],
+            [speeds[i] for i in anomaly_idx],
+            c='red', s=100, marker='X', zorder=5,
+            label=f'Anomalías ({len(anomaly_idx)})'
+        )
+    ax3.set_xlabel('Tiempo (ms)')
+    ax3.set_ylabel('Velocidad (px/ms)')
+    ax3.legend(loc='upper right')
+    ax3.grid(True, alpha=0.3)
+    
+    # Set y-axis limit for speed plot to show threshold clearly
+    max_normal_speed = max([s for s in speeds if s <= threshold], default=threshold)
+    y_max = max(threshold * 2, max_normal_speed * 1.5)
+    if anomaly_idx:
+        # If there are anomalies, show them but cap the y-axis for readability
+        y_max = min(max(speeds) * 1.1, threshold * 5)
+    ax3.set_ylim(0, y_max)
+    
+    plt.tight_layout()
+    
+    return fig, len(anomaly_idx), len(cursor_trail)
+
+
 def main():
     parser = argparse.ArgumentParser(description='Plot trial with speed anomalies highlighted')
     parser.add_argument('--subject', required=True, help='Subject ID')
@@ -170,6 +281,9 @@ def main():
                         help='Speed threshold in px/ms (default: 8.0)')
     parser.add_argument('--output-dir', default=config.FIGURES_DIR,
                         help='Output directory for figures')
+    parser.add_argument('--mode', default='spatial',
+                        choices=['spatial', 'temporal'],
+                        help='Plot mode: spatial (X/Y position) or temporal (time vs distance)')
     args = parser.parse_args()
     
     print(f"Loading {args.origin}...")
@@ -189,8 +303,13 @@ def main():
         print(f"Available trials: {available}")
         return
     
-    # Create plot
-    result = plot_trial_with_speed_anomalies(trial, subject.target_radius, args.threshold)
+    # Create plot based on mode
+    if args.mode == 'spatial':
+        result = plot_trial_with_speed_anomalies(trial, subject.target_radius, args.threshold)
+        mode_suffix = 'spatial'
+    else:  # temporal
+        result = plot_distance_over_time(trial, args.threshold)
+        mode_suffix = 'temporal'
     
     if result is None:
         print("Error: Not enough data to plot")
@@ -203,7 +322,7 @@ def main():
     
     # Save figure
     os.makedirs(args.output_dir, exist_ok=True)
-    filename = f"speed_anomalies_{args.subject[:8]}_{args.trial}.png"
+    filename = f"speed_anomalies_{args.subject[:8]}_{args.trial}_{mode_suffix}.png"
     output_path = os.path.join(args.output_dir, filename)
     fig.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close(fig)
