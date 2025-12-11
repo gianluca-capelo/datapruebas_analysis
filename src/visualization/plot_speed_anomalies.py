@@ -69,7 +69,7 @@ def calculate_speeds(cursor_trail):
     return speeds
 
 
-def plot_trial_with_speed_anomalies(trial, target_radius, threshold):
+def plot_trial_with_speed_anomalies(trial, target_radius, threshold, canvas_size=750):
     """Plot trial highlighting points with anomalous speeds.
     
     Uses get_cursor_trail_from_start() for consistency with other analysis.
@@ -78,6 +78,7 @@ def plot_trial_with_speed_anomalies(trial, target_radius, threshold):
         trial: TMTTrial object
         target_radius: Radius of targets in pixels
         threshold: Speed threshold in px/ms
+        canvas_size: Canvas size in pixels (default 750)
     
     Returns:
         matplotlib figure
@@ -152,12 +153,10 @@ def plot_trial_with_speed_anomalies(trial, target_radius, threshold):
         f'{len(anomaly_x)} anomalies / {len(cursor_trail)} points'
     )
     
-    # Set limits with margin
-    margin = 50
-    x_min, x_max = min(all_x) - margin, max(all_x) + margin
-    y_min, y_max = min(all_y) - margin, max(all_y) + margin
-    ax.set_xlim(x_min, x_max)
-    ax.set_ylim(y_max, y_min)  # Invert Y axis (screen coordinates)
+    # Set limits based on canvas_size (use full canvas for proper visualization)
+    margin = 20
+    ax.set_xlim(-margin, canvas_size + margin)
+    ax.set_ylim(canvas_size + margin, -margin)  # Invert Y axis (screen coordinates)
     ax.set_aspect('equal', adjustable='box')
     
     return fig, len(anomaly_x), len(cursor_trail)
@@ -305,7 +304,7 @@ def main():
     
     # Create plot based on mode
     if args.mode == 'spatial':
-        result = plot_trial_with_speed_anomalies(trial, subject.target_radius, args.threshold)
+        result = plot_trial_with_speed_anomalies(trial, subject.target_radius, args.threshold, subject.canvas_size)
         mode_suffix = 'spatial'
     else:  # temporal
         result = plot_distance_over_time(trial, args.threshold)
