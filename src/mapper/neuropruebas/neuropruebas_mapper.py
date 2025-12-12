@@ -215,6 +215,10 @@ class NeuropruebasTMTMapper(TMTMapper):
         return stimulus[0:2], stimulus[2:]
 
     def map_to_subject(self, subject_id, subject_data: pd.DataFrame, session_data: dict) -> TMTSubject:
+        px2mm = self._extract_px2mm_from_chinrest(subject_data)
+        if session_data is None:
+            session_data = {}
+        session_data['px2mm'] = px2mm
 
         try:
             training_stimuli, testing_stimuli = self.get_stimuli(subject_data)
@@ -445,3 +449,14 @@ class NeuropruebasTMTMapper(TMTMapper):
         df[column] = pd.to_numeric(df[column], errors="coerce")
 
         return df[column][df[column].notna()].values[0]
+
+    def _extract_px2mm_from_chinrest(self, df: pd.DataFrame) -> float:
+        chinrest_rows = df[df['trial_type'] == 'virtual-chinrest']
+        if len(chinrest_rows) == 0:
+            raise ValueError("No virtual-chinrest trial found")
+        if 'px2mm' not in df.columns:
+            raise ValueError("px2mm column not found in data")
+        px2mm = chinrest_rows['px2mm'].dropna()
+        if len(px2mm) == 0:
+            raise ValueError("px2mm value is missing in virtual-chinrest trial")
+        return float(px2mm.iloc[0])
