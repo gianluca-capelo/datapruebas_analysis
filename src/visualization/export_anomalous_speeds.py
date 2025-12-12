@@ -15,6 +15,7 @@ import os
 from src import config
 from src.mapper.datapruebas.datapruebas_mapper import DatapruebasTMTMapper
 from src.mapper.neuropruebas.neuropruebas_mapper import NeuropruebasTMTMapper
+from neurotask.tmt.metrics.targets_touched import count_correctly_touched_targets
 
 
 def load_datapruebas():
@@ -54,10 +55,18 @@ def find_anomalous_speeds(experiment, origin, threshold):
     anomalies = []
     
     for subject_id, subject in experiment.subjects.items():
+        target_radius = subject.target_radius
+        
         for trial in subject.testing_trials:
             cursor_trail = trial.get_cursor_trail_from_start()
             if not cursor_trail or len(cursor_trail) < 2:
                 continue
+            
+            # Calcular targets correctos para este trial
+            try:
+                correct_targets = count_correctly_touched_targets(trial, target_radius)
+            except Exception:
+                correct_targets = float('nan')
             
             for i in range(1, len(cursor_trail)):
                 curr = cursor_trail[i]
@@ -78,7 +87,8 @@ def find_anomalous_speeds(experiment, origin, threshold):
                         'trial_id': trial.id,
                         'speed_px_ms': round(speed, 2),
                         'speed_px_s': round(speed * 1000, 0),
-                        'origin': origin
+                        'origin': origin,
+                        'correct_targets': correct_targets
                     })
     
     return anomalies
@@ -118,7 +128,7 @@ def main():
     output_path = os.path.join(config.DATA_DIR, args.output)
     
     with open(output_path, 'w', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['subject_id', 'trial_id', 'speed_px_ms', 'speed_px_s', 'origin'])
+        writer = csv.DictWriter(f, fieldnames=['subject_id', 'trial_id', 'speed_px_ms', 'speed_px_s', 'origin', 'correct_targets'])
         writer.writeheader()
         writer.writerows(all_anomalies)
     
