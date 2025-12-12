@@ -57,6 +57,12 @@ def find_anomalous_speeds(experiment, origin, threshold):
     for subject_id, subject in experiment.subjects.items():
         target_radius = subject.target_radius
         
+        # Extraer px2mm de session_data
+        session_data = subject.session_data
+        px2mm = session_data.get('px2mm') if session_data else None
+        if px2mm is None:
+            px2mm = float('nan')
+        
         for trial in subject.testing_trials:
             cursor_trail = trial.get_cursor_trail_from_start()
             if not cursor_trail or len(cursor_trail) < 2:
@@ -88,7 +94,8 @@ def find_anomalous_speeds(experiment, origin, threshold):
                         'speed_px_ms': round(speed, 2),
                         'speed_px_s': round(speed * 1000, 0),
                         'origin': origin,
-                        'correct_targets': correct_targets
+                        'correct_targets': correct_targets,
+                        'px2mm': px2mm
                     })
     
     return anomalies
@@ -128,7 +135,7 @@ def main():
     output_path = os.path.join(config.DATA_DIR, args.output)
     
     with open(output_path, 'w', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['subject_id', 'trial_id', 'speed_px_ms', 'speed_px_s', 'origin', 'correct_targets'])
+        writer = csv.DictWriter(f, fieldnames=['subject_id', 'trial_id', 'speed_px_ms', 'speed_px_s', 'origin', 'correct_targets', 'px2mm'])
         writer.writeheader()
         writer.writerows(all_anomalies)
     
