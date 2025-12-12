@@ -75,6 +75,7 @@ class SubjectData(BaseModel):
     innerX: Optional[int] = None
     innerY: Optional[int] = None
     view_history: Optional[List[ViewHistory]] = Field(default=None, alias='view_history')
+    virtual_chinrest: Optional[str] = None
     stimulus: Optional[str] = None
     FIX_COLOR: Optional[str] = None
     remaining_items_training: Optional[int] = None
