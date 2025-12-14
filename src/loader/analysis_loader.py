@@ -57,7 +57,6 @@ def compute_hand_metrics(run_dir):
     datapruebas_metrics["experiment_origin"] = "datapruebas"
 
     metrics = concat_dataframes(neuropruebas_metrics, datapruebas_metrics)
-    metrics = datapruebas_metrics
     return metrics
 
 
