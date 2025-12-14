@@ -19,6 +19,7 @@ import os
 
 import matplotlib.pyplot as plt
 
+from neurotask.tmt.metrics.speed_metrics import calculate_speeds
 from src import config
 from src.mapper.datapruebas.datapruebas_mapper import DatapruebasTMTMapper
 from src.mapper.neuropruebas.neuropruebas_mapper import NeuropruebasTMTMapper
@@ -42,33 +43,6 @@ def load_experiment(origin):
     return mapper.map(dataset_path)
 
 
-def calculate_speeds(cursor_trail):
-    """Calculate speed between consecutive points.
-    
-    Args:
-        cursor_trail: List of CursorInfo objects
-    
-    Returns:
-        List of speeds (px/ms) for each point (first point is 0)
-    """
-    speeds = [0]  # First point has no speed
-    
-    for i in range(1, len(cursor_trail)):
-        curr = cursor_trail[i]
-        prev = cursor_trail[i-1]
-        
-        dt = curr.time - prev.time
-        if dt > 0:
-            dx = curr.position.x - prev.position.x
-            dy = curr.position.y - prev.position.y
-            distance = math.sqrt(dx**2 + dy**2)
-            speeds.append(distance / dt)
-        else:
-            speeds.append(0)
-    
-    return speeds
-
-
 def plot_trial_with_speed_anomalies(trial, target_radius, threshold, canvas_size=750):
     """Plot trial highlighting points with anomalous speeds.
     
@@ -87,8 +61,8 @@ def plot_trial_with_speed_anomalies(trial, target_radius, threshold, canvas_size
     if not cursor_trail or len(cursor_trail) < 2:
         return None
     
-    # Calculate speeds
-    speeds = calculate_speeds(cursor_trail)
+    # Calculate speeds using neurotask (prepend 0 to align with cursor_trail indices)
+    speeds = [0] + calculate_speeds(cursor_trail, raise_on_threshold=False)
     
     # Separate normal and anomalous points
     normal_x, normal_y = [], []
@@ -184,24 +158,20 @@ def plot_distance_over_time(trial, threshold):
     # Extract times
     times = [p.time for p in cursor_trail]
     
-    # Calculate distances and speeds
-    distances = [0]  # First point has no distance
-    cumulative = [0]
-    speeds = [0]
+    # Calculate speeds using neurotask (prepend 0 to align with cursor_trail indices)
+    speeds = [0] + calculate_speeds(cursor_trail, raise_on_threshold=False)
     
+    # Calculate distances (neurotask doesn't expose this directly)
+    distances = [0]
+    cumulative = [0]
     for i in range(1, len(cursor_trail)):
         curr = cursor_trail[i]
         prev = cursor_trail[i-1]
-        
         dx = curr.position.x - prev.position.x
         dy = curr.position.y - prev.position.y
         dist = math.sqrt(dx**2 + dy**2)
-        
         distances.append(dist)
         cumulative.append(cumulative[-1] + dist)
-        
-        dt = curr.time - prev.time
-        speeds.append(dist / dt if dt > 0 else 0)
     
     # Identify anomaly indices
     anomaly_idx = [i for i, s in enumerate(speeds) if s > threshold]

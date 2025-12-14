@@ -10,11 +10,11 @@ Usage:
 
 import argparse
 import csv
-import math
 import os
 from src import config
 from src.mapper.datapruebas.datapruebas_mapper import DatapruebasTMTMapper
 from src.mapper.neuropruebas.neuropruebas_mapper import NeuropruebasTMTMapper
+from neurotask.tmt.metrics.speed_metrics import calculate_speeds
 from neurotask.tmt.metrics.targets_touched import count_correctly_touched_targets
 
 
@@ -74,19 +74,13 @@ def find_anomalous_speeds(experiment, origin, threshold):
             except Exception:
                 correct_targets = float('nan')
             
-            for i in range(1, len(cursor_trail)):
-                curr = cursor_trail[i]
-                prev = cursor_trail[i-1]
-                
-                dt = curr.time - prev.time
-                if dt <= 0:
-                    continue
-                
-                dx = curr.position.x - prev.position.x
-                dy = curr.position.y - prev.position.y
-                distance = math.sqrt(dx**2 + dy**2)
-                speed = distance / dt
-                
+            # Calculate speeds using neurotask
+            try:
+                speeds = calculate_speeds(cursor_trail, raise_on_threshold=False)
+            except ValueError:
+                continue  # Less than 2 points
+            
+            for speed in speeds:
                 if speed > threshold:
                     anomalies.append({
                         'subject_id': subject_id,
