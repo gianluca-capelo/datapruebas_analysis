@@ -21,26 +21,7 @@ import matplotlib.pyplot as plt
 
 from neurotask.tmt.metrics.speed_metrics import calculate_speeds
 from src import config
-from src.mapper.datapruebas.datapruebas_mapper import DatapruebasTMTMapper
-from src.mapper.neuropruebas.neuropruebas_mapper import NeuropruebasTMTMapper
-
-
-def load_experiment(origin):
-    """Load experiment using the appropriate mapper."""
-    if origin == "datapruebas":
-        dataset_path = os.path.join(
-            config.DATA_DIR,
-            "raw/tmt/datapruebas/subjects",
-            config.EXPERIMENT_FILE_NAME
-        )
-        mapper = DatapruebasTMTMapper()
-    else:
-        dataset_path = os.path.join(
-            config.DATA_DIR,
-            "raw/tmt/neuropruebas/subjects"
-        )
-        mapper = NeuropruebasTMTMapper()
-    return mapper.map(dataset_path)
+from src.loader import load_experiment
 
 
 def plot_trial_with_speed_anomalies(trial, target_radius, threshold, canvas_size=750):
@@ -301,4 +282,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

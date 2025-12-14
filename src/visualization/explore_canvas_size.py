@@ -6,31 +6,7 @@ Usage:
     python -m src.visualization.explore_canvas_size
 """
 
-import os
-from src import config
-from src.mapper.datapruebas.datapruebas_mapper import DatapruebasTMTMapper
-from src.mapper.neuropruebas.neuropruebas_mapper import NeuropruebasTMTMapper
-
-
-def load_datapruebas():
-    """Load the datapruebas experiment."""
-    dataset_path = os.path.join(
-        config.DATA_DIR,
-        "raw/tmt/datapruebas/subjects",
-        config.EXPERIMENT_FILE_NAME
-    )
-    mapper = DatapruebasTMTMapper()
-    return mapper.map(dataset_path)
-
-
-def load_neuropruebas():
-    """Load the neuropruebas experiment."""
-    dataset_path = os.path.join(
-        config.DATA_DIR,
-        "raw/tmt/neuropruebas/subjects"
-    )
-    mapper = NeuropruebasTMTMapper()
-    return mapper.map(dataset_path)
+from src.loader import load_datapruebas, load_neuropruebas
 
 
 def collect_canvas_sizes(experiment):
@@ -100,4 +76,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

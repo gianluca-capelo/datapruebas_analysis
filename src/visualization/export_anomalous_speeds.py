@@ -12,31 +12,9 @@ import argparse
 import csv
 import os
 from src import config
-from src.mapper.datapruebas.datapruebas_mapper import DatapruebasTMTMapper
-from src.mapper.neuropruebas.neuropruebas_mapper import NeuropruebasTMTMapper
+from src.loader import load_datapruebas, load_neuropruebas
 from neurotask.tmt.metrics.speed_metrics import calculate_speeds
 from neurotask.tmt.metrics.targets_touched import count_correctly_touched_targets
-
-
-def load_datapruebas():
-    """Load the datapruebas experiment."""
-    dataset_path = os.path.join(
-        config.DATA_DIR,
-        "raw/tmt/datapruebas/subjects",
-        config.EXPERIMENT_FILE_NAME
-    )
-    mapper = DatapruebasTMTMapper()
-    return mapper.map(dataset_path)
-
-
-def load_neuropruebas():
-    """Load the neuropruebas experiment."""
-    dataset_path = os.path.join(
-        config.DATA_DIR,
-        "raw/tmt/neuropruebas/subjects"
-    )
-    mapper = NeuropruebasTMTMapper()
-    return mapper.map(dataset_path)
 
 
 def find_anomalous_speeds(experiment, origin, threshold):
@@ -143,4 +121,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
