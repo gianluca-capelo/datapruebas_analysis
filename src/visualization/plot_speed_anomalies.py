@@ -14,11 +14,12 @@ Usage:
 """
 
 import argparse
-import math
+import itertools
 import os
 
 import matplotlib.pyplot as plt
 
+from neurotask.tmt.metrics.distance_calculation import calculate_distance
 from neurotask.tmt.metrics.speed_metrics import calculate_speeds
 from src import config
 from src.loader import load_experiment
@@ -142,17 +143,12 @@ def plot_distance_over_time(trial, threshold):
     # Calculate speeds using neurotask (prepend 0 to align with cursor_trail indices)
     speeds = [0] + calculate_speeds(cursor_trail, raise_on_threshold=False)
     
-    # Calculate distances (neurotask doesn't expose this directly)
-    distances = [0]
-    cumulative = [0]
-    for i in range(1, len(cursor_trail)):
-        curr = cursor_trail[i]
-        prev = cursor_trail[i-1]
-        dx = curr.position.x - prev.position.x
-        dy = curr.position.y - prev.position.y
-        dist = math.sqrt(dx**2 + dy**2)
-        distances.append(dist)
-        cumulative.append(cumulative[-1] + dist)
+    # Calculate distances using neurotask
+    distances = [0] + [
+        calculate_distance(cursor_trail[i].position, cursor_trail[i-1].position)
+        for i in range(1, len(cursor_trail))
+    ]
+    cumulative = list(itertools.accumulate(distances))
     
     # Identify anomaly indices
     anomaly_idx = [i for i, s in enumerate(speeds) if s > threshold]
