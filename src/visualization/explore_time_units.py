@@ -23,7 +23,7 @@ def analyze_trial_times(trial):
     
     times = [p.time for p in trial.cursor_trail]
     
-    # Intervalos entre muestras consecutivas
+    # Intervals between consecutive samples
     intervals = [times[i+1] - times[i] for i in range(len(times)-1)]
     
     return {
