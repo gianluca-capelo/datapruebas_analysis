@@ -46,7 +46,7 @@ def find_anomalous_speeds(experiment, origin, threshold):
             if not cursor_trail or len(cursor_trail) < 2:
                 continue
             
-            # Calcular targets correctos para este trial
+            # Calculate correct targets for this trial
             try:
                 correct_targets = count_correctly_touched_targets(trial, target_radius)
             except Exception:
