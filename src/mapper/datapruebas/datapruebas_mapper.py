@@ -211,8 +211,16 @@ class DatapruebasTMTMapper(TMTMapper):
     def _extract_first_valid(self, data_list: List[SubjectData], attribute: str):
         return next((getattr(data, attribute) for data in data_list if getattr(data, attribute) is not None), None)
 
+    def _extract_px2mm_from_chinrest(self, subject_data_list: List[SubjectData]) -> Optional[float]:
+        for subject_data in subject_data_list:
+            if subject_data.trial_type == "virtual-chinrest" and subject_data.px2mm is not None:
+                return subject_data.px2mm
+        return None
+
     def _extract_session_data(self, subject_data_list: List[SubjectData], start_date: datetime) -> Optional[dict]:
         session_data = None
+        px2mm = self._extract_px2mm_from_chinrest(subject_data_list)
+        
         for subject_data in subject_data_list:
             if isinstance(subject_data.response, ResponseDetail):
                 session_data = {
@@ -223,7 +231,8 @@ class DatapruebasTMTMapper(TMTMapper):
                     "treatment": subject_data.response.tratamiento,
                     "pad_usage": subject_data.response.usoDelPad,
                     "final_comment": subject_data.response.comentarioFinal,
-                    "start_date": start_date.isoformat()
+                    "start_date": start_date.isoformat(),
+                    "px2mm": px2mm
                 }
                 break
         return session_data
