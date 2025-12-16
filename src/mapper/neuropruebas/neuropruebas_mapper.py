@@ -452,13 +452,13 @@ class NeuropruebasTMTMapper(TMTMapper):
 
         return df[column][df[column].notna()].values[0]
 
-    def _extract_px2mm_from_chinrest(self, df: pd.DataFrame) -> float:
+    def _extract_px2mm_from_chinrest(self, df: pd.DataFrame) -> Optional[float]:
         chinrest_rows = df[df['trial_type'] == 'virtual-chinrest']
         if len(chinrest_rows) == 0:
-            raise ValueError("No virtual-chinrest trial found")
+            return None
         if 'px2mm' not in df.columns:
-            raise ValueError("px2mm column not found in data")
+            return None
         px2mm = chinrest_rows['px2mm'].dropna()
         if len(px2mm) == 0:
-            raise ValueError("px2mm value is missing in virtual-chinrest trial")
+            return None
         return float(px2mm.iloc[0])
