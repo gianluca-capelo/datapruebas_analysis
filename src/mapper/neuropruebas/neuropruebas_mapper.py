@@ -6,6 +6,7 @@ from ast import literal_eval
 from typing import Optional, Dict, Tuple, List
 
 import pandas as pd
+from neurotask.tmt.invalid_cause import InvalidCause
 from neurotask.tmt.mapper.mapper import TMTMapper
 from neurotask.tmt.model.tmt_model import TMTExperiment, TMTSubject, CursorInfo, Coordinate, TMTTarget, TrialType, \
     TMTTrial, SubjectPersonalInformation, SessionContext
@@ -410,7 +411,8 @@ class NeuropruebasTMTMapper(TMTMapper):
                 trial_id=trial_id,
                 order_of_appearance=trial_order_of_appearance,
                 stimuli=targets,
-                trial_type=trial_type
+                trial_type=trial_type,
+                invalid_cause=InvalidCause.INVALID_LENGTH
             )
 
         cursor_trail = [

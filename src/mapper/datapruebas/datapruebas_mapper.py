@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime, timezone
 
+from neurotask.tmt.invalid_cause import InvalidCause
 from neurotask.tmt.mapper.mapper import TMTMapper
 from neurotask.tmt.metrics.distance_calculation import calculate_distance
 from neurotask.tmt.model.tmt_model import *
@@ -182,7 +183,8 @@ class DatapruebasTMTMapper(TMTMapper):
                 trial_id=trial_id,
                 order_of_appearance=trial_order_of_appearance,
                 stimuli=targets,
-                trial_type=trial_type
+                trial_type=trial_type,
+                invalid_cause=InvalidCause.INVALID_LENGTH
             )
 
         cursor_trail = [
