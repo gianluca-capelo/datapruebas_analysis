@@ -213,11 +213,14 @@ class DatapruebasTMTMapper(TMTMapper):
     def _extract_first_valid(self, data_list: List[SubjectData], attribute: str):
         return next((getattr(data, attribute) for data in data_list if getattr(data, attribute) is not None), None)
 
-    def _extract_px2mm_from_chinrest(self, subject_data_list: List[SubjectData]) -> Optional[float]:
+    def _extract_px2mm_from_chinrest(self, subject_data_list: List[SubjectData]) -> float:
         for subject_data in subject_data_list:
-            if subject_data.trial_type == "virtual-chinrest" and subject_data.px2mm is not None:
-                return subject_data.px2mm
-        return None
+            if subject_data.trial_type == "virtual-chinrest":
+                if subject_data.px2mm is not None:
+                    return subject_data.px2mm
+                else:
+                    raise ValueError("px2mm value is missing in virtual-chinrest trial")
+        raise ValueError("No virtual-chinrest trial found")
 
     def _extract_session_data(self, subject_data_list: List[SubjectData], start_date: datetime) -> Optional[dict]:
         session_data = None
