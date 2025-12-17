@@ -49,6 +49,14 @@ def truncate_error_message(error: str, max_length: int = 50) -> str:
     return error
 
 
+def normalize_error_message(error: str) -> str:
+    """Normaliza mensajes de error para agruparlos."""
+    # Agrupar todos los errores "Error obtaining stimuli for subject ..."
+    if error.startswith("Error obtaining stimuli for subject"):
+        return "Error obtaining stimuli"
+    return error
+
+
 def plot_mapping_errors(neuro_errors: pd.DataFrame, data_errors: pd.DataFrame, output_path: Path):
     """Genera el gráfico de errores de mapeo."""
     
@@ -61,6 +69,8 @@ def plot_mapping_errors(neuro_errors: pd.DataFrame, data_errors: pd.DataFrame, o
     ax1 = axes[0, 0]
     if neuro_errors is not None and len(neuro_errors) > 0:
         neuro_error_counts = neuro_errors['error'].apply(
+            normalize_error_message
+        ).apply(
             lambda x: truncate_error_message(x, 50)
         ).value_counts()
         
