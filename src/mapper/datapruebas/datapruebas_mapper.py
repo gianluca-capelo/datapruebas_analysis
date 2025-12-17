@@ -1,10 +1,14 @@
 import logging
+import os
 from datetime import datetime, timezone
 
+import pandas as pd
+from neurotask.tmt.invalid_cause import InvalidCause
 from neurotask.tmt.mapper.mapper import TMTMapper
 from neurotask.tmt.metrics.distance_calculation import calculate_distance
 from neurotask.tmt.model.tmt_model import *
 
+from src.config import LOG_DIR
 from src.mapper.datapruebas.datapruebas_model import *
 
 
@@ -40,21 +44,36 @@ class DatapruebasTMTMapper(TMTMapper):
 
     def map_to_experiment(self, datapruebas_experiment: ExperimentRunCollection) -> TMTExperiment:
         subjects = {}
+        errors = []
+
         for experiment in datapruebas_experiment.experiments:
             if self._has_finished_status(experiment):
 
                 if len(experiment.records) == 0:
                     logging.warning(f"No records found for subject {experiment.subject_id}")
+                    errors.append({
+                        "subject_id": experiment.subject_id,
+                        "error": "No records found",
+                        "num_records": 0
+                    })
                     continue
                 try:
-
                     start_date = parse_iso_datetime(experiment.start_date)
                     subjects[experiment.subject_id] = self.map_to_subject(experiment.records[0], start_date)
 
-                except IndexError:
+                except Exception as e:
                     logging.exception(f"Error processing experiment for subject {experiment.subject_id}")
-                except ValueError:
-                    logging.exception(f"Subject {experiment.subject_id} has no testing trials")
+                    errors.append({
+                        "subject_id": experiment.subject_id,
+                        "error": str(e),
+                        "num_records": len(experiment.records)
+                    })
+
+        if errors:
+            logging.warning(f"Errors found for subjects: {len(errors)} of total {len(datapruebas_experiment.experiments)}.")
+            save_file_path = os.path.join(LOG_DIR, "datapruebas_mapping_errors.csv")
+            errors_df = pd.DataFrame(errors)
+            errors_df.to_csv(save_file_path, index=False)
 
         return TMTExperiment(subjects)
 
@@ -182,7 +201,8 @@ class DatapruebasTMTMapper(TMTMapper):
                 trial_id=trial_id,
                 order_of_appearance=trial_order_of_appearance,
                 stimuli=targets,
-                trial_type=trial_type
+                trial_type=trial_type,
+                invalid_cause=InvalidCause.INVALID_LENGTH
             )
 
         cursor_trail = [
