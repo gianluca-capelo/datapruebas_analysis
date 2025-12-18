@@ -103,9 +103,9 @@ def compute_sst_metrics_for_origin(origin: str) -> pd.DataFrame:
 
 def _create_run_folder(timestamp: str) -> Path:
     """
-    Create a timestamped directory under SST results folder.
+    Create a timestamped directory under SST analysis folder.
     """
-    root_dir = Path(config.SST_RESULTS_PATH)
+    root_dir = Path(config.SST_ANALYSIS_FOLDER)
     run_dir = root_dir / timestamp
     run_dir.mkdir(parents=True, exist_ok=True)
     return run_dir
@@ -191,10 +191,10 @@ def get_latest_sst_analysis() -> tuple[pd.DataFrame, dict] | None:
     Returns:
         Tuple of (metrics_df, config_dict) or None if no analysis found.
     """
-    results_dir = Path(config.SST_RESULTS_PATH)
+    results_dir = Path(config.SST_ANALYSIS_FOLDER)
     
     if not results_dir.exists():
-        logging.warning("SST results directory does not exist: %s", results_dir)
+        logging.warning("SST analysis directory does not exist: %s", results_dir)
         return None
     
     # Find all timestamped directories
