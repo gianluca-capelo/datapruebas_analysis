@@ -109,15 +109,34 @@ Los datos crudos se encuentran en:
 
 ```
 data/raw/
-├── tmt/          # Trail Making Test
-├── sst/          # Stop Signal Task
+├── tmt/                              # Trail Making Test
 │   ├── datapruebas/
+│   │   ├── metadata/
+│   │   │   └── metadata.csv
+│   │   └── subjects/
+│   │       └── *.json
 │   └── neuropruebas/
-├── cdt/          # Change Detection Task
+│       ├── metadata/
+│       │   └── metadata.csv
+│       └── subjects/
+│           └── *.csv
+│
+├── sst/                              # Stop Signal Task
 │   ├── datapruebas/
+│   │   └── *.csv
 │   └── neuropruebas/
-└── gonogo/       # Go/No-Go
+│       └── *.csv
+│
+├── cdt/                              # Change Detection Task
+│   ├── datapruebas/
+│   │   └── *.csv
+│   └── neuropruebas/
+│       └── *.csv
+│
+└── gonogo/                           # Go/No-Go
     ├── datapruebas/
+    │   └── *.csv
     └── neuropruebas/
+        └── *.csv
 ```
 
