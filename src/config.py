@@ -30,6 +30,11 @@ CDT_DATAPRUEBAS_PATH = os.path.join(DATA_DIR, "raw", "cdt", "datapruebas")
 CDT_NEUROPRUEBAS_PATH = os.path.join(DATA_DIR, "raw", "cdt", "neuropruebas")
 CDT_ANALYSIS_FOLDER = os.path.join(DATA_DIR, "cdt_analysis")
 
+# Go/No-Go paths
+GONOGO_DATAPRUEBAS_PATH = os.path.join(DATA_DIR, "raw", "gonogo", "datapruebas")
+GONOGO_NEUROPRUEBAS_PATH = os.path.join(DATA_DIR, "raw", "gonogo", "neuropruebas")
+GONOGO_ANALYSIS_FOLDER = os.path.join(DATA_DIR, "gonogo_analysis")
+
 DATAPRUEBAS_METADATA_PATH = os.path.join(DATA_DIR, "raw", "tmt", "datapruebas", "metadata", "metadata.csv")
 NEUROPRUEBAS_METADATA_PATH = os.path.join(DATA_DIR, "raw", "tmt", "neuropruebas", "metadata", "metadata.csv")
 OLD_NEUROPRUEBAS_METADATA_PATH = os.path.join(DATA_DIR, "raw", "tmt", "neuropruebas", "metadata", "Sujetxs TMT Nacho - participantes_con_genero_inferido.csv")
