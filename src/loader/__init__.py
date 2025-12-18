@@ -15,6 +15,16 @@ from src.loader.sst_analysis_loader import (
     compute_sst_metrics,
     get_latest_sst_analysis,
 )
+from src.loader.cdt_loader import (
+    load_all_cdt_experiments,
+    load_cdt_experiment,
+    load_cdt_subjects,
+)
+from src.loader.cdt_analysis_loader import (
+    load_cdt_analysis,
+    compute_cdt_metrics,
+    get_latest_cdt_analysis,
+)
 
 __all__ = [
     # TMT loaders
@@ -29,5 +39,13 @@ __all__ = [
     "load_sst_analysis",
     "compute_sst_metrics",
     "get_latest_sst_analysis",
+    # CDT loaders
+    "load_cdt_subjects",
+    "load_cdt_experiment",
+    "load_all_cdt_experiments",
+    # CDT analysis
+    "load_cdt_analysis",
+    "compute_cdt_metrics",
+    "get_latest_cdt_analysis",
 ]
 
