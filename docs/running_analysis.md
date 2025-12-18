@@ -80,7 +80,7 @@ Desde Python, podés cargar el análisis más reciente sin re-ejecutar:
 ```python
 # TMT
 from src.loader.analysis_loader import load_analysis
-df, path = load_analysis(random_state=78, eval_size=1, split=False, old_split_config_date=None)
+df, path = load_analysis(random_state=78, eval_size=None, split=False, old_split_config_date=None)  # eval_size is ignored when split=False
 
 # SST
 from src.loader import get_latest_sst_analysis
