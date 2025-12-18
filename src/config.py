@@ -20,6 +20,11 @@ TMT_NEUROPRUEBAS_METRICS_PATH = os.path.join(DATA_DIR, "processed", "tmt", "neur
 TMT_DATAPRUEBAS_METRICS_PATH = os.path.join(DATA_DIR, "processed", "tmt", "datapruebas", "metrics.csv")
 TMT_METRICS_PATH = os.path.join(DATA_DIR, "processed", "tmt", "metrics.csv")
 
+# SST paths
+SST_DATAPRUEBAS_PATH = os.path.join(DATA_DIR, "raw", "sst", "datapruebas")
+SST_NEUROPRUEBAS_PATH = os.path.join(DATA_DIR, "raw", "sst", "neuropruebas")
+SST_RESULTS_PATH = os.path.join(DATA_DIR, "processed", "sst")
+
 DATAPRUEBAS_METADATA_PATH = os.path.join(DATA_DIR, "raw", "tmt", "datapruebas", "metadata", "metadata.csv")
 NEUROPRUEBAS_METADATA_PATH = os.path.join(DATA_DIR, "raw", "tmt", "neuropruebas", "metadata", "metadata.csv")
 OLD_NEUROPRUEBAS_METADATA_PATH = os.path.join(DATA_DIR, "raw", "tmt", "neuropruebas", "metadata", "Sujetxs TMT Nacho - participantes_con_genero_inferido.csv")
