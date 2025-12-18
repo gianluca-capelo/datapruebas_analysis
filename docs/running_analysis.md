@@ -50,7 +50,7 @@ Cada análisis guarda sus resultados en una carpeta con timestamp:
 ```
 data/
 ├── hand_analysis/<timestamp>/        # TMT
-│   ├── hand_analysis.csv             # Métricas por sujeto
+│   ├── analysis.csv                  # Métricas por sujeto
 │   └── configuration.json            # Configuración del análisis
 │
 ├── sst_analysis/<timestamp>/         # SST
