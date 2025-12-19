@@ -22,7 +22,7 @@ from tqdm import tqdm
 
 from src.config import CLASSIFICATION_RESULTS_DIR, REGRESSION_RESULTS_DIR, DATASETS, \
     MODEL_INNER_SEED, MODEL_OUTER_SEED, PERFORM_FEATURE_SELECTION, TUNE_HYPERPARAMETERS, \
-    REGRESSION_TARGETS, CLASSIFICATION_TARGET, CLASSIFICATION_MODELS, REGRESSION_MODELS, CLASSIFICATION_PARAM_GRID, \
+    CLASSIFICATION_MODELS, REGRESSION_MODELS, CLASSIFICATION_PARAM_GRID, \
     REGRESSION_PARAM_GRID, MAX_SELECTED_FEATURES, INNER_CV_SPLITS
 from src.model.datasetbuilder.dataset_builder import DatasetBuilder
 
@@ -66,15 +66,15 @@ def save_shap_plot(shap_values, dataset_dir, dataset_name, model_name,
 _dataset_builder = None
 
 
-def retrieve_dataset(dataset_name, target_col, is_classification):
+def retrieve_dataset(dataset_name):
     """Retrieve dataset using DatasetBuilder."""
     global _dataset_builder
     
     if _dataset_builder is None:
         _dataset_builder = DatasetBuilder()
     
-    X, y, feature_names = _dataset_builder.get_dataset(dataset_name)
-    return X, y, np.array(feature_names)
+    X, y, feature_names, target_name = _dataset_builder.get_dataset(dataset_name)
+    return X, y, np.array(feature_names), target_name
 
 
 def get_parameter_grid(is_classification):
@@ -92,8 +92,8 @@ def get_models(random_state: int, is_classification):
 
 
 def perform(dataset_name: str, global_seed: int,
-            inner_cv_seed: int, feature_selection: bool, tune_hyperparameters: bool, target_col, is_classification):
-    X, y, feature_names = retrieve_dataset(dataset_name, target_col, is_classification)
+            inner_cv_seed: int, feature_selection: bool, tune_hyperparameters: bool, is_classification):
+    X, y, feature_names, target_name = retrieve_dataset(dataset_name)
 
     param_grids = get_parameter_grid(is_classification)
 
@@ -104,7 +104,7 @@ def perform(dataset_name: str, global_seed: int,
     performance_metrics_df = perform_cross_validation(param_grids, models, outer_cv, X, y, feature_selection, tune_hyperparameters,
                                                       inner_cv_seed, feature_names, is_classification)
 
-    return performance_metrics_df, feature_names
+    return performance_metrics_df, feature_names, target_name
 
 
 def perform_cross_validation(param_grids, models, outer_cv, X, y, feature_selection: bool,
@@ -304,39 +304,34 @@ def main():
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
-    is_classification, target_cols = parse_args()
+    is_classification = parse_args()
     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M")
 
-    for target_col in target_cols:
-        logging.info(f"Running {target_col}...")
-        for dataset_name in DATASETS:
-            logging.info(f"Processing dataset: {dataset_name}")
-
-            run_experiment(dataset_name,
-                           PERFORM_FEATURE_SELECTION,
-                           MODEL_OUTER_SEED,
-                           MODEL_INNER_SEED,
-                           is_classification,
-                           target_col, timestamp,
-                           tune_hyperparameters=TUNE_HYPERPARAMETERS)
+    for dataset_name in DATASETS:
+        run_experiment(dataset_name,
+                       PERFORM_FEATURE_SELECTION,
+                       MODEL_OUTER_SEED,
+                       MODEL_INNER_SEED,
+                       is_classification,
+                       timestamp,
+                       tune_hyperparameters=TUNE_HYPERPARAMETERS)
 
 
-def run_experiment(dataset_name, feature_selection, global_seed, inner_cv_seed, is_classification, target_col, timestamp, tune_hyperparameters):
-    logging.info(f"Running {target_col}...")
+def run_experiment(dataset_name, feature_selection, global_seed, inner_cv_seed, is_classification, timestamp, tune_hyperparameters):
     logging.info(f"Processing dataset: {dataset_name}")
-    performance_metrics_df, feature_names = perform(
+    performance_metrics_df, feature_names, target_name = perform(
         dataset_name=dataset_name,
         global_seed=global_seed,
         inner_cv_seed=inner_cv_seed,
         feature_selection=feature_selection,
         tune_hyperparameters=tune_hyperparameters,
-        target_col=target_col,
         is_classification=is_classification
     )
+    logging.info(f"Target: {target_name}")
     leave_one_out_metrics_df = calculate_metrics_leave_one_out(performance_metrics_df, is_classification)
 
     base_dir = CLASSIFICATION_RESULTS_DIR if is_classification else REGRESSION_RESULTS_DIR
-    dataset_dir = os.path.join(base_dir, timestamp, target_col, dataset_name)
+    dataset_dir = os.path.join(base_dir, timestamp, target_name, dataset_name)
     os.makedirs(dataset_dir, exist_ok=True)
 
     # 5) Persist standard outputs (folds + summary + config)
@@ -346,36 +341,19 @@ def run_experiment(dataset_name, feature_selection, global_seed, inner_cv_seed, 
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Run classification or regression pipelines.")
+    parser = argparse.ArgumentParser(description="Run ML pipeline on configured datasets.")
 
     parser.add_argument(
         "--task",
         choices=["classification", "regression"],
         required=True,
-        help="Tipo de tarea a ejecutar."
-    )
-    parser.add_argument(
-        "--target-col",
-        default=None,
-        help="Columna objetivo. En clasificación debe ser 'group'. En regresión, por defecto 'mmse' si no se pasa."
+        help="Task type: 'classification' or 'regression'"
     )
 
     args = parser.parse_args()
-
-    if args.task is None or args.task not in ["classification", "regression"]:
-        raise ValueError("task must be provided and be either 'classification' or 'regression'")
-
     is_classification = args.task == "classification"
 
-    if is_classification:
-        target_cols = [CLASSIFICATION_TARGET]
-    else:
-        if args.target_col is None:
-            target_cols = REGRESSION_TARGETS
-        else:
-            target_cols = [args.target_col]
-
-    return is_classification, target_cols
+    return is_classification
 
 
 if __name__ == "__main__":

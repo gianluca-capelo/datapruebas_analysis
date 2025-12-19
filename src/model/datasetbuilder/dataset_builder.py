@@ -33,9 +33,9 @@ class DatasetBuilder:
         'speed_threshold', 'px2mm',
     }
     
-    def get_dataset(self, name: str) -> Tuple[np.ndarray, np.ndarray, list]:
+    def get_dataset(self, name: str) -> Tuple[np.ndarray, np.ndarray, list, str]:
         """
-        Get X, y, feature_names for a dataset.
+        Get X, y, feature_names, and target_name for a dataset.
         
         Args:
             name: Dataset name (e.g., 'tmt_ssrt')
@@ -44,6 +44,7 @@ class DatasetBuilder:
             X: Feature matrix (n_samples, n_features)
             y: Target vector (n_samples,)
             feature_names: List of feature column names
+            target_name: Name of the target column
         """
         match name:
             case 'tmt_ssrt':
@@ -52,7 +53,7 @@ class DatasetBuilder:
                 raise ValueError(f"Unknown dataset: {name}. "
                                f"Available: ['tmt_ssrt']")
     
-    def _build_tmt_ssrt(self) -> Tuple[np.ndarray, np.ndarray, list]:
+    def _build_tmt_ssrt(self) -> Tuple[np.ndarray, np.ndarray, list, str]:
         """
         Build dataset with TMT features and SSRT as target.
         
@@ -60,7 +61,10 @@ class DatasetBuilder:
             X: TMT features aggregated by subject
             y: SSRT values from SST analysis
             feature_names: List of TMT feature names
+            target_name: 'ssrt'
         """
+        target_name = 'ssrt'
+        
         # Load TMT data
         tmt_df, _ = load_last_analysis()
         tmt_agg = self._aggregate_tmt(tmt_df)
@@ -69,7 +73,7 @@ class DatasetBuilder:
         sst_result = get_latest_sst_analysis()
         if sst_result is None:
             raise RuntimeError("No SST analysis found. Run SST analysis first.")
-        sst_df = sst_result[0][['subject_id', 'ssrt']]
+        sst_df = sst_result[0][['subject_id', target_name]]
         
         # Merge on subject_id
         merged = pd.merge(tmt_agg, sst_df, on='subject_id', how='inner')
@@ -78,11 +82,11 @@ class DatasetBuilder:
             raise RuntimeError("No matching subjects between TMT and SST data.")
         
         # Extract X and y
-        feature_cols = [c for c in merged.columns if c not in ['subject_id', 'ssrt']]
+        feature_cols = [c for c in merged.columns if c not in ['subject_id', target_name]]
         X = merged[feature_cols].values
-        y = merged['ssrt'].values
+        y = merged[target_name].values
         
-        return X, y, feature_cols
+        return X, y, feature_cols, target_name
     
     def _aggregate_tmt(self, df: pd.DataFrame) -> pd.DataFrame:
         """
