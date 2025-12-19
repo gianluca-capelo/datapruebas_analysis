@@ -278,7 +278,8 @@ def plot_shap_summary(df, is_classification, target_col, top_n=20, plot_freq=Fal
         "age": "Age"
     }
 
-    df_plot.index = df_plot.index.map(feature_labels)
+    # Map feature names to human-readable labels, keeping original if not found
+    df_plot.index = df_plot.index.map(lambda x: feature_labels.get(x, x))
     bars = ax1.barh(df_plot.index, df_plot["mean_abs_shap"], alpha=0.7)
     ax1.set_xlabel("Mean |SHAP| (across selected folds)")
     ax1.tick_params(axis="x")
@@ -324,10 +325,19 @@ def plot_shap_summary(df, is_classification, target_col, top_n=20, plot_freq=Fal
         plt.show()
 
 
-def run_analysis(dataset_name, is_classification, model, timestamp, save_filename, target_col):
-    shap_explanations = run_shap(
+def run_analysis(dataset_name, is_classification, model, timestamp, save_filename):
+    """
+    Run SHAP analysis and plot results.
+    
+    Args:
+        dataset_name: Name of the dataset (e.g., 'tmt_ssrt')
+        is_classification: True for classification, False for regression
+        model: Name of the model to explain
+        timestamp: Timestamp folder of the results
+        save_filename: Filename to save the plot
+    """
+    shap_explanations, target_name = run_shap(
         dataset_name=dataset_name,
-        target_col=target_col,
         task="classification" if is_classification else "regression",
         model_name_to_explain=model,
         timestamp=timestamp
@@ -336,26 +346,30 @@ def run_analysis(dataset_name, is_classification, model, timestamp, save_filenam
                                    task="classification" if is_classification else "regression")
     print(shap_df.head(10))
     plot_shap_summary(shap_df, top_n=20,
-                      save_filename=save_filename, is_classification=is_classification, target_col=target_col)
+                      save_filename=save_filename, is_classification=is_classification, target_col=target_name)
 
 
-def main(is_classification, timestamp):
+def main(is_classification, timestamp, dataset_name="tmt_ssrt"):
+    """
+    Run SHAP analysis for a dataset.
+    
+    Args:
+        is_classification: True for classification, False for regression
+        timestamp: Timestamp folder of the results
+        dataset_name: Name of the dataset (default: 'tmt_ssrt')
+    """
     if is_classification:
-        target_col = "group"  # Binary classification
         model = "SVC"
-        timestamp = timestamp
-        save_filename = "shap_summary_classification.png"
-        dataset_name = "demographic+digital"
+        save_filename = f"shap_summary_{dataset_name}_classification.png"
     else:
-        target_col = "mmse"
-        model = "RandomForestRegressor"
-        timestamp = timestamp
-        save_filename = "shap_summary_regression.png"
-        dataset_name = "demographic+digital"
-    run_analysis(dataset_name, is_classification, model, timestamp, save_filename, target_col)
+        model = "Ridge"
+        save_filename = f"shap_summary_{dataset_name}_regression.png"
+    
+    run_analysis(dataset_name, is_classification, model, timestamp, save_filename)
 
 
 if __name__ == "__main__":
-    is_classification = True
-    timestamp = "2025-09-14_0038 (clasificacion completo)" if is_classification else "2025-09-14_1008"
-    main(is_classification, timestamp)
+    # Example usage - update timestamp to match your results folder
+    is_classification = False
+    timestamp = "test_new_api"
+    main(is_classification, timestamp, dataset_name="tmt_ssrt")

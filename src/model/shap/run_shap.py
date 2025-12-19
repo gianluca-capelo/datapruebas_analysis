@@ -47,7 +47,6 @@ def parse_hparams(s):
 
 def shap_after_nested_cv(
         dataset_name: str,
-        target_col,
         is_classification: bool,
         feature_selection: bool,
         global_seed: int,
@@ -60,7 +59,7 @@ def shap_after_nested_cv(
       shap_values_df: DataFrame [samples x features]
       mean_abs_shap: Series (mean |SHAP| per feature)
     """
-    X, y, feature_names = retrieve_dataset(dataset_name, target_col, is_classification)
+    X, y, feature_names, target_name = retrieve_dataset(dataset_name)
     feature_names = np.array(feature_names)
 
     folds_df = load_folds_info(folds_csv_path, model_name_to_explain)
@@ -152,28 +151,39 @@ def load_folds_info(folds_csv_path, model_name_to_explain):
 from src.config import MODEL_OUTER_SEED
 
 
-def run_shap(task: str, target_col: str, dataset_name: str, timestamp: str, model_name_to_explain: str):
+def run_shap(task: str, dataset_name: str, timestamp: str, model_name_to_explain: str):
+    """
+    Run SHAP analysis on a trained model.
+    
+    Args:
+        task: 'classification' or 'regression'
+        dataset_name: Name of the dataset (e.g., 'tmt_ssrt')
+        timestamp: Timestamp folder of the results
+        model_name_to_explain: Name of the model to explain (e.g., 'Ridge')
+    
+    Returns:
+        tuple: (shap_explanations, target_name)
+    """
     if task != 'classification' and task != 'regression':
         raise ValueError("task must be 'classification' or 'regression'")
 
     is_classification = task == 'classification'
 
-    if is_classification and target_col != 'group':
-        raise ValueError("For classification, target_col must be 'group'")
+    # Get target_name from dataset
+    _, _, _, target_name = retrieve_dataset(dataset_name)
 
     results_dir = CLASSIFICATION_RESULTS_DIR if is_classification else REGRESSION_RESULTS_DIR
 
     folds_path = os.path.join(
         results_dir,
         timestamp,
-        target_col,
+        target_name,
         dataset_name,
         "folds.csv"
     )
 
     shap_explanations = shap_after_nested_cv(
         dataset_name=dataset_name,
-        target_col=target_col,
         is_classification=is_classification,
         feature_selection=True,
         global_seed=MODEL_OUTER_SEED,
@@ -183,4 +193,4 @@ def run_shap(task: str, target_col: str, dataset_name: str, timestamp: str, mode
 
     print(shap_explanations)
 
-    return shap_explanations
+    return shap_explanations, target_name
