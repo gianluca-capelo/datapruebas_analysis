@@ -137,8 +137,7 @@ def plot_shap_summary(df, is_classification, target_col, top_n=20, plot_freq=Fal
     # Axis 1: horizontal bars of mean absolute SHAP values
     bar_color = "steelblue"
 
-
-
+    # TODO: If more datasets are added, consider extracting this mapping to a config file
     feature_labels = {
         "is_valid_sum_A": "Valid sum (Part A)",
         "is_valid_sum_B": "Valid sum (Part B)",
