@@ -24,7 +24,7 @@ from src.config import PROCESSED_FOR_MODEL_DIR, CLASSIFICATION_RESULTS_DIR, REGR
     MODEL_INNER_SEED, MODEL_OUTER_SEED, PERFORM_FEATURE_SELECTION, TUNE_HYPERPARAMETERS, \
     REGRESSION_TARGETS, CLASSIFICATION_TARGET, CLASSIFICATION_MODELS, REGRESSION_MODELS, CLASSIFICATION_PARAM_GRID, \
     REGRESSION_PARAM_GRID, MAX_SELECTED_FEATURES, INNER_CV_SPLITS
-from src.hand_analysis.loader.load_last_split import load_last_analysis
+from src.loader.load_last_split import load_last_analysis
 
 
 def save_shap_plot(shap_values, dataset_dir, dataset_name, model_name,
@@ -271,8 +271,11 @@ def perform_cross_validation_for_model(param_grid, model, outer_cv, X, y, featur
         y_pred_proba = best_model.predict_proba(X_test)[:, 1] if is_classification else None
         y_pred = best_model.predict(X_test)
 
-        mask = best_model.named_steps["select"].get_support()
-        selected_features = feature_names[mask]
+        if feature_selection:
+            mask = best_model.named_steps["select"].get_support()
+            selected_features = feature_names[mask]
+        else:
+            selected_features = feature_names
 
         fold_metrics.append({
             'model': model_name,

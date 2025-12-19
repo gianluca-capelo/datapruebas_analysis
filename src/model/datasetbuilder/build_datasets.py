@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 from src.config import PROCESSED_FOR_MODEL_DIR
-from src.hand_analysis.loader.load_last_split import load_last_analysis
+from src.loader.load_last_split import load_last_analysis
 
 
 def get_digital_tmt_vars():
