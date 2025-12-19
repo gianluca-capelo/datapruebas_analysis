@@ -20,11 +20,10 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from tqdm import tqdm
 
-from src.config import PROCESSED_FOR_MODEL_DIR, CLASSIFICATION_RESULTS_DIR, REGRESSION_RESULTS_DIR, DATASETS, \
+from src.config import CLASSIFICATION_RESULTS_DIR, REGRESSION_RESULTS_DIR, DATASETS, \
     MODEL_INNER_SEED, MODEL_OUTER_SEED, PERFORM_FEATURE_SELECTION, TUNE_HYPERPARAMETERS, \
     REGRESSION_TARGETS, CLASSIFICATION_TARGET, CLASSIFICATION_MODELS, REGRESSION_MODELS, CLASSIFICATION_PARAM_GRID, \
     REGRESSION_PARAM_GRID, MAX_SELECTED_FEATURES, INNER_CV_SPLITS
-from src.loader.load_last_split import load_last_analysis
 from src.model.datasetbuilder.dataset_builder import DatasetBuilder
 
 
@@ -64,124 +63,18 @@ def save_shap_plot(shap_values, dataset_dir, dataset_name, model_name,
 
     logging.info(f"Saved SHAP {plot_type} plot to {out_path}")
 
-def get_target_column(target_col, df):
-    last_analysis, _ = load_last_analysis()
-    if target_col not in last_analysis.columns:
-        raise ValueError(f"Target column '{target_col}' not found in the last analysis DataFrame.")
-
-    target_df = last_analysis[['subject_id', target_col]].drop_duplicates(subset='subject_id')
-    merged_df = pd.merge(df, target_df, on='subject_id', how='inner')
-
-    return merged_df[target_col].values
-
-
-def split_features_and_target_for_classification(df):
-    target_col = CLASSIFICATION_TARGET
-
-    df_copy = df.copy()
-
-    if target_col not in df_copy.columns:
-        raise ValueError(f" For classification, the target column '{target_col}' must be present in the DataFrame.")
-
-    y = df_copy[target_col].values
-
-    df_copy = df_copy.drop(columns=['subject_id', target_col])
-
-    X = df_copy.values
-
-    feature_names = df_copy.columns
-
-    return X, y, feature_names
-
-
-def split_features_and_target_for_regression(df, target_col):
-    df_copy = df.copy()
-
-    if target_col in df_copy.columns:
-        y = df_copy[target_col].values
-        # TODO GIAN: por las dudas, dsp borrar esta linea
-        df_copy = df_copy.drop(columns=[target_col])
-        assert np.array_equal(y, get_target_column(target_col, df_copy)), \
-            f"Target column '{target_col}' values do not match with the last analysis DataFrame"
-    else:
-        y = get_target_column(target_col, df_copy)
-
-    df_copy = df_copy.drop(columns=['subject_id'])
-
-    df_copy = df_copy.drop(columns=[CLASSIFICATION_TARGET])
-
-    X = df_copy.values
-
-    feature_names = df_copy.columns
-
-    return X, y, feature_names
-
-
-def join_on_subject(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
-    # Avoid duplicating group column if it exists in both DataFrames
-    if CLASSIFICATION_TARGET in df1.columns and CLASSIFICATION_TARGET in df2.columns:
-        df2 = df2.drop(columns=CLASSIFICATION_TARGET)
-
-    return pd.merge(df1, df2, on='subject_id', how='inner')
-
-
-def load_all_datasets() -> dict:
-    path = os.path.join(PROCESSED_FOR_MODEL_DIR)
-    return {
-        'df_digital_tmt_with_target': pd.read_csv(os.path.join(path, 'df_digital_tmt_with_target.csv')),
-        'demographic_df': pd.read_csv(os.path.join(path, 'demographic_df.csv')),
-        'non_digital_df': pd.read_csv(os.path.join(path, 'non_digital_df.csv')),
-    }
-
-
-LEGACY_DATASETS = ['demographic', 'demographic+digital', 'non_digital_tests', 
-                   'digital_test', 'non_digital_tests+demo']
-
 _dataset_builder = None
 
 
 def retrieve_dataset(dataset_name, target_col, is_classification):
+    """Retrieve dataset using DatasetBuilder."""
     global _dataset_builder
     
-    # Legacy datasets (from CSV files)
-    if dataset_name in LEGACY_DATASETS:
-        return _retrieve_legacy_dataset(dataset_name, target_col, is_classification)
-    
-    # New datasets (from DatasetBuilder)
     if _dataset_builder is None:
         _dataset_builder = DatasetBuilder()
     
     X, y, feature_names = _dataset_builder.get_dataset(dataset_name)
     return X, y, np.array(feature_names)
-
-
-def _retrieve_legacy_dataset(dataset_name, target_col, is_classification):
-    """Retrieve dataset from legacy CSV files."""
-    datasets = load_all_datasets()
-
-    match dataset_name:
-        case 'demographic':
-            df = datasets['demographic_df']
-
-        case 'demographic+digital':
-            df = join_on_subject(datasets['df_digital_tmt_with_target'], datasets['demographic_df'])
-
-        case 'non_digital_tests':
-            df = datasets['non_digital_df']
-
-        case 'digital_test':
-            df = datasets['df_digital_tmt_with_target']
-
-        case 'non_digital_tests+demo':
-            df = join_on_subject(datasets['non_digital_df'], datasets['demographic_df'])
-
-        case _:
-            raise ValueError(f"Dataset '{dataset_name}' not recognized.")
-
-    if is_classification:
-        return split_features_and_target_for_classification(df)
-    else:
-        return split_features_and_target_for_regression(df, target_col)
 
 
 def get_parameter_grid(is_classification):

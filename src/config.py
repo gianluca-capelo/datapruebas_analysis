@@ -68,7 +68,6 @@ from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet, Log
 from sklearn.svm import SVR, SVC
 
 # Paths for ML
-PROCESSED_FOR_MODEL_DIR = os.path.join(DATA_DIR, "processed")
 RESULTS_DIR = os.path.join(BASE_DIR, "results")
 CLASSIFICATION_RESULTS_DIR = os.path.join(RESULTS_DIR, "classification")
 REGRESSION_RESULTS_DIR = os.path.join(RESULTS_DIR, "regression")
@@ -85,11 +84,6 @@ MAX_SELECTED_FEATURES = 20
 
 # Datasets configuration
 DATASETS = [
-    'demographic',
-    'digital_test',
-    'demographic+digital',
-    'non_digital_tests',
-    'non_digital_tests+demo',
     'tmt_ssrt',  # TMT features → SSRT target
 ]
 
@@ -97,18 +91,7 @@ DATASETS = [
 CLASSIFICATION_TARGET = 'group'
 REGRESSION_TARGETS = [
     "ssrt",  # Stop Signal Reaction Time
-    "mmse",
-    "tmt_a_raw",
-    "tmt_b_raw",
-    "digit_symbol_raw",
-    "forward_digit_span_raw",
-    "backward_digit_span_raw",
-    "clock_drawing_test"
 ]
-
-# Plot configuration
-DATASETS_PLOT = None
-DATASETS_PLOT_FOLDER = None
 
 
 def CLASSIFICATION_MODELS(random_state):
