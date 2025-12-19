@@ -90,11 +90,13 @@ DATASETS = [
     'demographic+digital',
     'non_digital_tests',
     'non_digital_tests+demo',
+    'tmt_ssrt',  # TMT features → SSRT target
 ]
 
 # Target columns
 CLASSIFICATION_TARGET = 'group'
 REGRESSION_TARGETS = [
+    "ssrt",  # Stop Signal Reaction Time
     "mmse",
     "tmt_a_raw",
     "tmt_b_raw",

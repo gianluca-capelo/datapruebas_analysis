@@ -27,7 +27,7 @@ def load_analysis_by_run_dir(run_dir: Path) -> Tuple[pd.DataFrame, pd.DataFrame]
     data_path = run_dir / "analysis.csv"
     if not data_path.exists():
         raise FileNotFoundError(f"Analysis CSV not found in {run_dir}")
-    df = pd.read_csv(data_path)
+    df = pd.read_csv(data_path, on_bad_lines='warn')
 
     # split out train/eval
     df_train = df[df['subject_id'].isin(train_ids)].reset_index(drop=True)
@@ -79,10 +79,25 @@ def get_run_configuration(run_dir) -> dict:
 
 
 def get_last_run_directory():
+    """
+    Get the most recent run directory that has both configuration.json and analysis.csv.
+    """
     base_dir = Path(config_file.HAND_ANALYSIS_FOLDER)
-    candidates = [d for d in base_dir.iterdir() if d.is_dir()]
+    
+    # Only consider directories with required files
+    candidates = [
+        d for d in base_dir.iterdir() 
+        if d.is_dir() 
+        and (d / "configuration.json").exists()
+        and (d / "analysis.csv").exists()
+    ]
+    
     if not candidates:
-        raise FileNotFoundError(f"No run directories found in {base_dir}")
-    run_dir = max(candidates)
+        raise FileNotFoundError(
+            f"No valid run directories found in {base_dir}. "
+            "A valid directory must contain configuration.json and analysis.csv"
+        )
+    
+    run_dir = max(candidates, key=lambda d: d.name)
     logging.info("Loading split from %s", run_dir)
     return run_dir

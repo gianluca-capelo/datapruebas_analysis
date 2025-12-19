@@ -25,6 +25,7 @@ from src.config import PROCESSED_FOR_MODEL_DIR, CLASSIFICATION_RESULTS_DIR, REGR
     REGRESSION_TARGETS, CLASSIFICATION_TARGET, CLASSIFICATION_MODELS, REGRESSION_MODELS, CLASSIFICATION_PARAM_GRID, \
     REGRESSION_PARAM_GRID, MAX_SELECTED_FEATURES, INNER_CV_SPLITS
 from src.loader.load_last_split import load_last_analysis
+from src.model.datasetbuilder.dataset_builder import DatasetBuilder
 
 
 def save_shap_plot(shap_values, dataset_dir, dataset_name, model_name,
@@ -133,7 +134,29 @@ def load_all_datasets() -> dict:
     }
 
 
+LEGACY_DATASETS = ['demographic', 'demographic+digital', 'non_digital_tests', 
+                   'digital_test', 'non_digital_tests+demo']
+
+_dataset_builder = None
+
+
 def retrieve_dataset(dataset_name, target_col, is_classification):
+    global _dataset_builder
+    
+    # Legacy datasets (from CSV files)
+    if dataset_name in LEGACY_DATASETS:
+        return _retrieve_legacy_dataset(dataset_name, target_col, is_classification)
+    
+    # New datasets (from DatasetBuilder)
+    if _dataset_builder is None:
+        _dataset_builder = DatasetBuilder()
+    
+    X, y, feature_names = _dataset_builder.get_dataset(dataset_name)
+    return X, y, np.array(feature_names)
+
+
+def _retrieve_legacy_dataset(dataset_name, target_col, is_classification):
+    """Retrieve dataset from legacy CSV files."""
     datasets = load_all_datasets()
 
     match dataset_name:
