@@ -3,7 +3,7 @@ import pandas as pd
 
 from src import config
 
-# Carpetas
+# Directories
 
 data_dir = config.DATA_DIR
 dir_new = os.path.join(data_dir, "processed")
@@ -17,7 +17,7 @@ files = [
 ]
 
 def compare_dataframes(df1, df2):
-    """Devuelve True si los DataFrames son idénticos (mismo contenido y columnas)"""
+    """Returns True if the DataFrames are identical (same content and columns)"""
     try:
         pd.testing.assert_frame_equal(df1, df2, check_dtype=False, check_like=True)
         return True
@@ -29,20 +29,20 @@ for file in files:
     path_old = os.path.join(dir_old, file)
 
     if not os.path.exists(path_new) or not os.path.exists(path_old):
-        print(f"❌ El archivo {file} no existe en una de las carpetas.")
+        print(f"❌ File {file} does not exist in one of the directories.")
         continue
 
-    # Leer CSV
+    # Read CSV
     df_new = pd.read_csv(path_new)
     df_old = pd.read_csv(path_old)
 
-    # Comparar
+    # Compare
     if compare_dataframes(df_new, df_old):
-        print(f"✅ {file} → Son iguales.")
+        print(f"✅ {file} → They are equal.")
     else:
-        print(f"⚠️ {file} → Son diferentes.")
+        print(f"⚠️ {file} → They are different.")
 
-        # Mostrar algunas diferencias
+        # Show some differences
         diff_rows = df_new.compare(df_old) if df_new.shape == df_old.shape else "Tamaños distintos"
         print(f"Diferencias encontradas en {file}:")
         print(diff_rows)

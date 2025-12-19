@@ -11,7 +11,7 @@ from src.config import CLASSIFICATION_RESULTS_DIR, REGRESSION_RESULTS_DIR, REGRE
 
 def _select_metric(metric: str):
     """
-    Devuelve (metric_fn, higher_is_better) según el nombre de la métrica.
+    Returns (metric_fn, higher_is_better) based on the metric name.
     """
     name = str(metric).lower()
     if name == "auc":
@@ -31,13 +31,13 @@ def permutation_test(y_true, y_pred, n_permutations=1000, seed=42, metric='auc')
     y_pred = np.asarray(y_pred)
 
     if y_true.shape[0] != y_pred.shape[0]:
-        raise ValueError("y_true y y_pred deben tener la misma longitud.")
+        raise ValueError("y_true and y_pred must have the same length.")
     if not np.all(np.isfinite(y_pred)):
-        raise ValueError("y_pred contiene valores no finitos.")
+        raise ValueError("y_pred contains non-finite values.")
 
     if metric.lower() == "auc":
         if np.unique(y_true).size < 2:
-            raise ValueError("Para AUC, y_true debe contener al menos dos clases (p. ej., 0 y 1).")
+            raise ValueError("For AUC, y_true must contain at least two classes (e.g., 0 and 1).")
 
     rng = np.random.RandomState(seed)
 

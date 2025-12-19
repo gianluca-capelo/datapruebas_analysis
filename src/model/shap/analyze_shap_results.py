@@ -17,12 +17,12 @@ def extract_positive_class_explanations(explanations):
         vals = explanation.values.copy()
         base = explanation.base_values.copy()
         positive_class_idx = 1
-        # Caso 1: (n_samples, n_classes, n_features)
+        # Case 1: (n_samples, n_classes, n_features)
         if vals.ndim == 3 and vals.shape[1] == 2:
             vals = vals[:, positive_class_idx, :]
             base = base[:, positive_class_idx] if base.ndim == 2 else base
 
-        # Caso 2: (n_samples, n_features, n_classes)
+        # Case 2: (n_samples, n_features, n_classes)
         elif vals.ndim == 3 and vals.shape[2] == 2:
             vals = vals[:, :, positive_class_idx]
             base = base[:, positive_class_idx] if base.ndim == 2 else base
@@ -45,11 +45,11 @@ def build_shap_absolute_df(explanations):
     for expl in explanations:
         absolute_values = np.abs(expl.values)  # (1, n_features)
         names = expl.feature_names
-        # Armo dict con valores de este fold
+        # Build dict with values from this fold
         row = dict(zip(names, absolute_values.flatten()))
         rows.append(row)
 
-    # DataFrame folds × features (NaN si el feature no apareció en ese fold)
+    # DataFrame folds × features (NaN if the feature was not selected in that fold)
     df = pd.DataFrame(rows)
     return df
 
@@ -64,10 +64,10 @@ def analyze_shap_results(explanations: Iterable[shap.Explanation], task: str, fi
     Returns:
     pd.DataFrame: A DataFrame with features as index and their mean absolute SHAP values.
     """
-    # Extraer explicaciones para la clase positiva
+    # Extract explanations for the positive class
     explanations = extract_positive_class_explanations(explanations) if task == "classification" else explanations
 
-    # Construir DataFrame de valores absolutos de SHAP
+    # Build DataFrame of absolute SHAP values
     shap_abs_df = build_shap_absolute_df(explanations)
 
     result_df = build_mean_shap_df(shap_abs_df, fillna_zero=fillna_zero)

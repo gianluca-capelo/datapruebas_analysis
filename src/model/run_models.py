@@ -30,16 +30,16 @@ from src.model.datasetbuilder.dataset_builder import DatasetBuilder
 def save_shap_plot(shap_values, dataset_dir, dataset_name, model_name,
                    plot_type="bar", file_format="png", max_display=20):
     """
-    Guarda un gráfico de SHAP en el formato elegido.
+    Save a SHAP plot in the specified format.
 
     Args:
-        shap_values: shap.Explanation ya normalizado (2D).
-        dataset_dir (str): carpeta destino.
-        dataset_name (str): nombre del dataset.
-        model_name (str): nombre del modelo.
-        plot_type (str): "bar" o "beeswarm".
+        shap_values: shap.Explanation already normalized (2D).
+        dataset_dir (str): destination folder.
+        dataset_name (str): name of the dataset.
+        model_name (str): name of the model.
+        plot_type (str): "bar" or "beeswarm".
         file_format (str): "png", "pdf", "svg", etc.
-        max_display (int): features a mostrar.
+        max_display (int): number of features to display.
     """
     k = min(max_display, shap_values.values.shape[1])
 
@@ -262,27 +262,27 @@ def calculate_metrics_leave_one_out(performance_metrics_df, is_classification):
 def save_results(leave_one_out_metrics, dataset_name, feature_selection, performance_metrics_df,
                  tune_hyperparameters, is_classification, timestamp, feature_names, dataset_dir):
     """
-    Guarda los resultados y la configuración del experimento en un directorio por fecha y dataset.
+    Save results and experiment configuration to a directory organized by date and dataset.
 
     Args:
-        leave_one_out_metrics (pd.DataFrame): Métricas agregadas por modelo.
-        dataset_name (str): Nombre del dataset usado.
-        feature_selection (bool): Si se aplicó selección de características.
-        performance_metrics_df (pd.DataFrame): Métricas por fold.
-        tune_hyperparameters (bool): Si se usó GridSearchCV.
-        is_classification (bool): Si es una tarea de clasificación.
-        timestamp (str): Marca de tiempo para la carpeta (formato "%Y-%m-%d_%H%M").
-        feature_names (list): Nombres de las características originales.
-        target_column (str): Nombre de la columna objetivo.
+        leave_one_out_metrics (pd.DataFrame): Aggregated metrics per model.
+        dataset_name (str): Name of the dataset used.
+        feature_selection (bool): Whether feature selection was applied.
+        performance_metrics_df (pd.DataFrame): Metrics per fold.
+        tune_hyperparameters (bool): Whether GridSearchCV was used.
+        is_classification (bool): Whether it's a classification task.
+        timestamp (str): Timestamp for the folder (format "%Y-%m-%d_%H%M").
+        feature_names (list): Names of the original features.
+        dataset_dir (str): Directory path where results will be saved.
     """
 
-    # Guardar métricas por fold
+    # Save metrics per fold
     performance_metrics_df.to_csv(os.path.join(dataset_dir, "folds.csv"), index=False)
 
-    # Guardar métricas globales
+    # Save global metrics
     leave_one_out_metrics.to_csv(os.path.join(dataset_dir, "summary.csv"), index=False)
 
-    # Guardar configuración
+    # Save configuration
     config = {
         "dataset": dataset_name,
         "feature_selection": feature_selection,

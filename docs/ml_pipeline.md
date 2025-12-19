@@ -1,76 +1,76 @@
-# Pipeline de Machine Learning
+# Machine Learning Pipeline
 
-**Fecha:** 19 de diciembre de 2025
+**Date:** December 19, 2025
 
-Este documento explica cómo ejecutar el pipeline de ML para predecir variables cognitivas usando datos de tareas digitales.
-
----
-
-## Índice
-
-1. [Requisitos Previos](#requisitos-previos)
-2. [Ejecución del Pipeline](#ejecución-del-pipeline)
-3. [Datasets Disponibles](#datasets-disponibles)
-4. [Estructura de Resultados](#estructura-de-resultados)
-5. [Configuración](#configuración)
-6. [Modelos Disponibles](#modelos-disponibles)
-7. [Agregar Nuevos Datasets](#agregar-nuevos-datasets)
+This document explains how to run the ML pipeline to predict cognitive variables using digital task data.
 
 ---
 
-## Requisitos Previos
+## Table of Contents
 
-1. **Datos de análisis generados:**
-   - TMT: Debe existir un análisis en `data/hand_analysis/` con `analysis.csv` y `configuration.json`
-   - SST: Debe existir un análisis en `data/sst_analysis/` con `analysis.csv`
+1. [Prerequisites](#prerequisites)
+2. [Running the Pipeline](#running-the-pipeline)
+3. [Available Datasets](#available-datasets)
+4. [Results Structure](#results-structure)
+5. [Configuration](#configuration)
+6. [Available Models](#available-models)
+7. [Adding New Datasets](#adding-new-datasets)
 
-2. **Dependencias instaladas:**
+---
+
+## Prerequisites
+
+1. **Generated analysis data:**
+   - TMT: An analysis must exist in `data/hand_analysis/` with `analysis.csv` and `configuration.json`
+   - SST: An analysis must exist in `data/sst_analysis/` with `analysis.csv`
+
+2. **Installed dependencies:**
    ```bash
    pip install -r requirements.txt
    ```
 
 ---
 
-## Ejecución del Pipeline
+## Running the Pipeline
 
-### Regresión (predecir variable continua)
+### Regression (predict continuous variable)
 
 ```bash
 python -m src.model.run_models --task regression
 ```
 
-### Clasificación (predecir categoría)
+### Classification (predict category)
 
 ```bash
 python -m src.model.run_models --task classification
 ```
 
-> **Nota:** El target se define en cada dataset, no se pasa como parámetro. Ver sección [Datasets Disponibles](#datasets-disponibles).
+> **Note:** The target is defined in each dataset, not passed as a parameter. See section [Available Datasets](#available-datasets).
 
 ---
 
-## Datasets Disponibles
+## Available Datasets
 
-Cada dataset define sus propias features y target:
+Each dataset defines its own features and target:
 
-| Dataset | Features | Target | Descripción |
+| Dataset | Features | Target | Description |
 |---------|----------|--------|-------------|
-| `tmt_ssrt` | TMT (136 features) | `ssrt` | Features de Trail Making Test para predecir Stop Signal Reaction Time |
+| `tmt_ssrt` | TMT (136 features) | `ssrt` | Trail Making Test features to predict Stop Signal Reaction Time |
 
-### Cómo se construye `tmt_ssrt`
+### How `tmt_ssrt` is built
 
-1. **Carga TMT:** Lee `analysis.csv` del último run en `data/hand_analysis/`
-2. **Filtra:** Solo trials con `is_valid == True`
-3. **Detecta features:** Columnas numéricas automáticamente (excluyendo metadata)
-4. **Agrega:** Promedio por sujeto, pivoteado por `trial_type` (PART_A, PART_B)
-5. **Carga SST:** Lee SSRT de `data/sst_analysis/`
-6. **Merge:** Une por `subject_id`
+1. **Load TMT:** Reads `analysis.csv` from the latest run in `data/hand_analysis/`
+2. **Filter:** Only trials with `is_valid == True`
+3. **Detect features:** Numeric columns automatically (excluding metadata)
+4. **Aggregate:** Mean per subject, pivoted by `trial_type` (PART_A, PART_B)
+5. **Load SST:** Reads SSRT from `data/sst_analysis/`
+6. **Merge:** Join by `subject_id`
 
-Resultado: ~170 sujetos × 136 features
+Result: ~170 subjects × 136 features
 
 ---
 
-## Estructura de Resultados
+## Results Structure
 
 ```
 results/
@@ -78,9 +78,9 @@ results/
 │   └── {timestamp}/
 │       └── {target}/
 │           └── {dataset}/
-│               ├── config.json    # Configuración del experimento
-│               ├── folds.csv      # Predicciones por fold (LOOCV)
-│               └── summary.csv    # Métricas por modelo
+│               ├── config.json    # Experiment configuration
+│               ├── folds.csv      # Predictions per fold (LOOCV)
+│               └── summary.csv    # Metrics per model
 │
 └── regression/
     └── {timestamp}/
@@ -91,10 +91,10 @@ results/
                 └── summary.csv
 ```
 
-### Archivos de salida
+### Output Files
 
 #### `config.json`
-Configuración del experimento:
+Experiment configuration:
 ```json
 {
     "dataset": "tmt_ssrt",
@@ -108,37 +108,37 @@ Configuración del experimento:
 ```
 
 #### `summary.csv`
-Métricas agregadas por modelo:
+Aggregated metrics per model:
 
-| Columna | Descripción |
-|---------|-------------|
-| `model` | Nombre del modelo |
-| `r2` | R² score (regresión) |
+| Column | Description |
+|--------|-------------|
+| `model` | Model name |
+| `r2` | R² score (regression) |
 | `mse` | Mean Squared Error |
 | `mae` | Mean Absolute Error |
-| `accuracy` | Accuracy (clasificación) |
-| `roc_auc` | ROC AUC (clasificación) |
-| `selected_features` | Features seleccionados |
+| `accuracy` | Accuracy (classification) |
+| `roc_auc` | ROC AUC (classification) |
+| `selected_features` | Selected features |
 
 #### `folds.csv`
-Predicciones detalladas por fold (Leave-One-Out):
+Detailed predictions per fold (Leave-One-Out):
 
-| Columna | Descripción |
-|---------|-------------|
-| `fold` | Índice del fold |
-| `model` | Nombre del modelo |
-| `y_true` | Valor real |
-| `y_pred` | Predicción |
-| `best_params` | Hiperparámetros óptimos |
+| Column | Description |
+|--------|-------------|
+| `fold` | Fold index |
+| `model` | Model name |
+| `y_true` | Actual value |
+| `y_pred` | Prediction |
+| `best_params` | Optimal hyperparameters |
 
 ---
 
-## Configuración
+## Configuration
 
-Editar `src/config.py`:
+Edit `src/config.py`:
 
 ```python
-# Seeds para reproducibilidad
+# Seeds for reproducibility
 MODEL_OUTER_SEED = 47
 MODEL_INNER_SEED = 66
 INNER_CV_SPLITS = 10
@@ -150,43 +150,43 @@ MAX_SELECTED_FEATURES = 20
 # Hyperparameter tuning
 TUNE_HYPERPARAMETERS = True
 
-# Datasets a evaluar (cada uno define su propio target)
+# Datasets to evaluate (each defines its own target)
 DATASETS = ['tmt_ssrt']
 ```
 
 ---
 
-## Modelos Disponibles
+## Available Models
 
-### Regresión
+### Regression
 
-| Modelo | Descripción |
-|--------|-------------|
-| `DummyRegressor` | Baseline (predice la media) |
-| `LinearRegression` | Regresión lineal |
-| `Ridge` | Regresión con regularización L2 |
-| `Lasso` | Regresión con regularización L1 |
-| `ElasticNet` | Combinación L1 + L2 |
+| Model | Description |
+|-------|-------------|
+| `DummyRegressor` | Baseline (predicts the mean) |
+| `LinearRegression` | Linear regression |
+| `Ridge` | Regression with L2 regularization |
+| `Lasso` | Regression with L1 regularization |
+| `ElasticNet` | L1 + L2 combination |
 | `SVR` | Support Vector Regression |
 | `RandomForestRegressor` | Random Forest |
 | `XGBRegressor` | XGBoost |
 
-### Clasificación
+### Classification
 
-| Modelo | Descripción |
-|--------|-------------|
+| Model | Description |
+|-------|-------------|
 | `RandomForestClassifier` | Random Forest |
 | `SVC` | Support Vector Classification |
-| `LogisticRegression` | Regresión logística |
+| `LogisticRegression` | Logistic regression |
 | `XGBClassifier` | XGBoost |
 
 ---
 
-## Agregar Nuevos Datasets
+## Adding New Datasets
 
-Cada dataset encapsula sus features y su target. Para agregar uno nuevo:
+Each dataset encapsulates its features and target. To add a new one:
 
-### 1. Editar `src/model/datasetbuilder/dataset_builder.py`
+### 1. Edit `src/model/datasetbuilder/dataset_builder.py`
 
 ```python
 def get_dataset(self, name: str) -> Tuple[np.ndarray, np.ndarray, list, str]:
@@ -200,16 +200,16 @@ def get_dataset(self, name: str) -> Tuple[np.ndarray, np.ndarray, list, str]:
     match name:
         case 'tmt_ssrt':
             return self._build_tmt_ssrt()
-        case 'nuevo_dataset':           # Agregar nuevo case
-            return self._build_nuevo()
+        case 'new_dataset':           # Add new case
+            return self._build_new()
         case _:
             raise ValueError(f"Unknown dataset: {name}")
 
-def _build_nuevo(self) -> Tuple[np.ndarray, np.ndarray, list, str]:
-    target_name = 'mi_target'
+def _build_new(self) -> Tuple[np.ndarray, np.ndarray, list, str]:
+    target_name = 'my_target'
     
-    # Cargar datos...
-    # Procesar...
+    # Load data...
+    # Process...
     
     X = ...  # np.ndarray (n_samples, n_features)
     y = ...  # np.ndarray (n_samples,)
@@ -218,26 +218,26 @@ def _build_nuevo(self) -> Tuple[np.ndarray, np.ndarray, list, str]:
     return X, y, feature_names, target_name
 ```
 
-### 2. Agregar a `src/config.py`
+### 2. Add to `src/config.py`
 
 ```python
 DATASETS = [
     'tmt_ssrt',
-    'nuevo_dataset',  # Agregar aquí
+    'new_dataset',  # Add here
 ]
 ```
 
 ---
 
-## Metodología
+## Methodology
 
 ### Cross-Validation
-- **Leave-One-Out (LOOCV):** Cada sujeto es usado una vez como test
-- **Inner CV:** 10-fold para tuning de hiperparámetros (si está habilitado)
+- **Leave-One-Out (LOOCV):** Each subject is used once as test
+- **Inner CV:** 10-fold for hyperparameter tuning (if enabled)
 
 ### Feature Selection
-- **Método:** SelectKBest con f_regression o f_classif
-- **k:** Máximo 20 features (configurable)
+- **Method:** SelectKBest with f_regression or f_classif
+- **k:** Maximum 20 features (configurable)
 
 ### Pipeline
 ```
@@ -246,39 +246,39 @@ Imputer → StandardScaler → [FeatureSelection] → Model
 
 ---
 
-## Ejemplo Completo
+## Complete Example
 
 ```bash
-# 1. Activar entorno
+# 1. Activate environment
 source venv/bin/activate
 
-# 2. Verificar datos
-ls data/hand_analysis/  # Debe tener carpetas con analysis.csv
-ls data/sst_analysis/   # Debe tener carpetas con analysis.csv
+# 2. Verify data
+ls data/hand_analysis/  # Should have folders with analysis.csv
+ls data/sst_analysis/   # Should have folders with analysis.csv
 
-# 3. Ejecutar regresión
+# 3. Run regression
 python -m src.model.run_models --task regression
 
-# 4. Ver resultados
+# 4. View results
 cat results/regression/*/ssrt/tmt_ssrt/summary.csv
 ```
 
 ---
 
-## Arquitectura
+## Architecture
 
 ```
 src/model/
-├── run_models.py              # Pipeline principal
+├── run_models.py              # Main pipeline
 ├── datasetbuilder/
-│   └── dataset_builder.py     # Construcción de datasets (X, y, features, target)
-├── shap/                      # Análisis SHAP (legacy, requiere actualización)
+│   └── dataset_builder.py     # Dataset construction (X, y, features, target)
+├── shap/                      # SHAP analysis (legacy, requires update)
 ├── classification/
-│   └── roc_curves.py          # Curvas ROC
-└── permutation_tests.py       # Tests de permutación
+│   └── roc_curves.py          # ROC curves
+└── permutation_tests.py       # Permutation tests
 ```
 
-### Flujo de datos
+### Data Flow
 
 ```
 DatasetBuilder.get_dataset('tmt_ssrt')
