@@ -18,15 +18,20 @@ class DatasetBuilder:
         - 'tmt_ssrt': TMT features → SSRT target
     """
     
-    TMT_FEATURE_COLS = [
-        'rt', 'mean_speed', 'std_speed', 'peak_speed',
-        'mean_acceleration', 'std_acceleration', 'peak_acceleration',
-        'hesitation_time', 'travel_time', 'search_time',
-        'hesitation_distance', 'travel_distance', 'search_distance',
-        'total_hesitations', 'average_duration', 'max_duration',
-        'distance_difference_from_ideal', 'area_difference_from_ideal',
-        'intra_target_time', 'inter_target_time'
-    ]
+    # Columns to exclude from features (metadata/identifiers)
+    EXCLUDE_COLS = {
+        'subject_id', 'trial_id', 'trial_type', 'is_valid',
+        'trial_order_of_appearance', 'invalid_cause', 'error_message',
+        'recorded_at', 'start_date', 'mail',
+        # Config/demographic columns (not trial features)
+        'dispositivo', 'mano', 'dispositivo-config', 'alcohol-drogas',
+        'tratamiento', 'usoDelPad', 'comentarioFinal',
+        'MouseOrPad-choice', 'hand-choice', 'hand_config-choice',
+        'PadUsechoice', 'age', 'gender', 'education_level', 'nationality',
+        'experiment_origin', 'device', 'hand', 'device_config',
+        'alcohol_drugs', 'treatment', 'pad_usage', 'final_comment',
+        'speed_threshold', 'px2mm',
+    }
     
     def get_dataset(self, name: str) -> Tuple[np.ndarray, np.ndarray, list]:
         """
@@ -94,12 +99,17 @@ class DatasetBuilder:
         # Filter valid trials only (handle both bool and string 'True')
         df_valid = df[df['is_valid'].astype(str) == 'True'].copy()
         
-        # Get available feature columns
-        feature_cols = [c for c in self.TMT_FEATURE_COLS if c in df_valid.columns]
-        
-        # Convert feature columns to numeric, coercing errors to NaN
-        for col in feature_cols:
-            df_valid[col] = pd.to_numeric(df_valid[col], errors='coerce')
+        # Auto-detect numeric feature columns (exclude metadata)
+        feature_cols = []
+        for col in df_valid.columns:
+            if col in self.EXCLUDE_COLS:
+                continue
+            # Try to convert to numeric
+            numeric_col = pd.to_numeric(df_valid[col], errors='coerce')
+            # Keep if at least 50% of values are numeric
+            if numeric_col.notna().mean() > 0.5:
+                df_valid[col] = numeric_col
+                feature_cols.append(col)
         
         # Pivot by trial_type and aggregate with mean
         agg = df_valid.pivot_table(
