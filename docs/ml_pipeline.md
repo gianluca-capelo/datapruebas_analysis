@@ -36,11 +36,7 @@ Este documento explica cómo ejecutar el pipeline de ML para predecir variables 
 ### Regresión (predecir variable continua)
 
 ```bash
-# Ejecutar regresión para todos los targets configurados
 python -m src.model.run_models --task regression
-
-# Ejecutar regresión para un target específico
-python -m src.model.run_models --task regression --target-col ssrt
 ```
 
 ### Clasificación (predecir categoría)
@@ -49,13 +45,17 @@ python -m src.model.run_models --task regression --target-col ssrt
 python -m src.model.run_models --task classification
 ```
 
+> **Nota:** El target se define en cada dataset, no se pasa como parámetro. Ver sección [Datasets Disponibles](#datasets-disponibles).
+
 ---
 
 ## Datasets Disponibles
 
+Cada dataset define sus propias features y target:
+
 | Dataset | Features | Target | Descripción |
 |---------|----------|--------|-------------|
-| `tmt_ssrt` | TMT (136 features) | SSRT | Features de Trail Making Test para predecir Stop Signal Reaction Time |
+| `tmt_ssrt` | TMT (136 features) | `ssrt` | Features de Trail Making Test para predecir Stop Signal Reaction Time |
 
 ### Cómo se construye `tmt_ssrt`
 
@@ -150,11 +150,8 @@ MAX_SELECTED_FEATURES = 20
 # Hyperparameter tuning
 TUNE_HYPERPARAMETERS = True
 
-# Datasets a evaluar
+# Datasets a evaluar (cada uno define su propio target)
 DATASETS = ['tmt_ssrt']
-
-# Targets de regresión
-REGRESSION_TARGETS = ['ssrt']
 ```
 
 ---
@@ -187,10 +184,19 @@ REGRESSION_TARGETS = ['ssrt']
 
 ## Agregar Nuevos Datasets
 
-1. **Editar `src/model/datasetbuilder/dataset_builder.py`:**
+Cada dataset encapsula sus features y su target. Para agregar uno nuevo:
+
+### 1. Editar `src/model/datasetbuilder/dataset_builder.py`
 
 ```python
-def get_dataset(self, name: str):
+def get_dataset(self, name: str) -> Tuple[np.ndarray, np.ndarray, list, str]:
+    """
+    Returns:
+        X: Feature matrix
+        y: Target vector
+        feature_names: List of feature names
+        target_name: Name of target column
+    """
     match name:
         case 'tmt_ssrt':
             return self._build_tmt_ssrt()
@@ -199,14 +205,20 @@ def get_dataset(self, name: str):
         case _:
             raise ValueError(f"Unknown dataset: {name}")
 
-def _build_nuevo(self):
-    # Cargar datos
-    # Procesar
-    # Retornar X, y, feature_names
-    pass
+def _build_nuevo(self) -> Tuple[np.ndarray, np.ndarray, list, str]:
+    target_name = 'mi_target'
+    
+    # Cargar datos...
+    # Procesar...
+    
+    X = ...  # np.ndarray (n_samples, n_features)
+    y = ...  # np.ndarray (n_samples,)
+    feature_names = [...]  # list[str]
+    
+    return X, y, feature_names, target_name
 ```
 
-2. **Agregar a `src/config.py`:**
+### 2. Agregar a `src/config.py`
 
 ```python
 DATASETS = [
@@ -245,9 +257,38 @@ ls data/hand_analysis/  # Debe tener carpetas con analysis.csv
 ls data/sst_analysis/   # Debe tener carpetas con analysis.csv
 
 # 3. Ejecutar regresión
-python -m src.model.run_models --task regression --target-col ssrt
+python -m src.model.run_models --task regression
 
 # 4. Ver resultados
 cat results/regression/*/ssrt/tmt_ssrt/summary.csv
 ```
 
+---
+
+## Arquitectura
+
+```
+src/model/
+├── run_models.py              # Pipeline principal
+├── datasetbuilder/
+│   └── dataset_builder.py     # Construcción de datasets (X, y, features, target)
+├── shap/                      # Análisis SHAP (legacy, requiere actualización)
+├── classification/
+│   └── roc_curves.py          # Curvas ROC
+└── permutation_tests.py       # Tests de permutación
+```
+
+### Flujo de datos
+
+```
+DatasetBuilder.get_dataset('tmt_ssrt')
+       │
+       ▼
+  (X, y, feature_names, target_name)
+       │
+       ▼
+  perform() → LOOCV + GridSearchCV
+       │
+       ▼
+  save_results() → results/{task}/{timestamp}/{target}/{dataset}/
+```
