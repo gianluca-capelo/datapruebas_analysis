@@ -46,12 +46,12 @@ class DatasetBuilder:
             feature_names: List of feature column names
             target_name: Name of the target column
         """
-        match name:
-            case 'tmt_ssrt':
-                return self._build_tmt_ssrt()
-            case _:
-                raise ValueError(f"Unknown dataset: {name}. "
-                               f"Available: ['tmt_ssrt']")
+        if name == 'tmt_ssrt':
+            return self._build_tmt_ssrt()
+        else:
+            raise ValueError(
+                f"Unknown dataset: {name}. Available: ['tmt_ssrt']"
+            )
     
     def _build_tmt_ssrt(self) -> Tuple[np.ndarray, np.ndarray, list, str]:
         """
