@@ -13,7 +13,8 @@ import csv
 import os
 from src import config
 from src.loader import load_datapruebas, load_neuropruebas
-from neurotask.tmt.metrics.speed_metrics import calculate_speeds
+from neurotask.tmt.metrics.speed_metrics import calculate_speeds_with_validity
+from neurotask.tmt.metrics.distance_calculation import calculate_distance
 from neurotask.tmt.metrics.targets_touched import count_correctly_touched_targets
 
 
@@ -52,23 +53,30 @@ def find_anomalous_speeds(experiment, origin, threshold):
             except Exception:
                 correct_targets = float('nan')
             
-            # Calculate speeds using neurotask
+            # Calculate speeds with validity flags
             try:
-                speeds = calculate_speeds(cursor_trail, raise_on_threshold=False)
+                speed_results = calculate_speeds_with_validity(cursor_trail)
             except ValueError:
                 continue  # Less than 2 points
             
-            for speed in speeds:
-                if speed > threshold:
-                    anomalies.append({
-                        'subject_id': subject_id,
-                        'trial_id': trial.id,
-                        'speed_px_ms': round(speed, 2),
-                        'speed_px_s': round(speed * 1000, 0),
-                        'origin': origin,
-                        'correct_targets': correct_targets,
-                        'px2mm': px2mm
-                    })
+            for i, result in enumerate(speed_results):
+                if not result.is_valid:
+                    # Calculate speed manually to report it
+                    curr = cursor_trail[i + 1]
+                    prev = cursor_trail[i]
+                    dt = curr.time - prev.time
+                    if dt > 0:
+                        distance = calculate_distance(curr.position, prev.position)
+                        speed = distance / dt
+                        anomalies.append({
+                            'subject_id': subject_id,
+                            'trial_id': trial.id,
+                            'speed_px_ms': round(speed, 2),
+                            'speed_px_s': round(speed * 1000, 0),
+                            'origin': origin,
+                            'correct_targets': correct_targets,
+                            'px2mm': px2mm
+                        })
     
     return anomalies
 
