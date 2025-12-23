@@ -217,9 +217,11 @@ class NeuropruebasTMTMapper(TMTMapper):
 
     def map_to_subject(self, subject_id, subject_data: pd.DataFrame, session_data: dict) -> TMTSubject:
         px2mm = self._extract_px2mm_from_chinrest(subject_data)
+        scale_factor = self._extract_scale_factor_from_chinrest(subject_data)
         if session_data is None:
             session_data = {}
         session_data['px2mm'] = px2mm
+        session_data['scale_factor'] = scale_factor
 
         try:
             training_stimuli, testing_stimuli = self.get_stimuli(subject_data)
@@ -462,3 +464,14 @@ class NeuropruebasTMTMapper(TMTMapper):
         if len(px2mm) == 0:
             return None
         return float(px2mm.iloc[0])
+
+    def _extract_scale_factor_from_chinrest(self, df: pd.DataFrame) -> Optional[float]:
+        chinrest_rows = df[df['trial_type'] == 'virtual-chinrest']
+        if len(chinrest_rows) == 0:
+            return None
+        if 'scale_factor' not in df.columns:
+            return None
+        scale_factor = chinrest_rows['scale_factor'].dropna()
+        if len(scale_factor) == 0:
+            return None
+        return float(scale_factor.iloc[0])
