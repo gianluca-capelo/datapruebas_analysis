@@ -1,0 +1,85 @@
+"""
+SST (Stop Signal Task) data loader.
+
+Provides functions to load SST experiment data from CSV files.
+"""
+
+import glob
+import os
+
+import pandas as pd
+
+from src import config
+
+
+def load_sst_subjects(folder_path: str) -> dict[str, pd.DataFrame]:
+    """
+    Load SST subject data from CSV files in a folder.
+    
+    Args:
+        folder_path: Path to folder containing CSV files (one per subject).
+        
+    Returns:
+        Dictionary mapping subject_id to their DataFrame.
+        
+    Note:
+        This function does NOT modify the original files.
+        Subject ID is extracted from the filename (without .csv extension).
+    """
+    subjects_dict = {}
+    
+    for filepath in glob.glob(os.path.join(folder_path, "*.csv")):
+        filename = os.path.basename(filepath)
+        subject_id = filename.replace(".csv", "")
+        
+        df = pd.read_csv(filepath, on_bad_lines="skip")
+        
+        # Ensure correct data types for SST columns
+        if "SSD" in df.columns:
+            df["rt"] = pd.to_numeric(df["rt"], errors="coerce")
+            df["raw_rt"] = pd.to_numeric(df["raw_rt"], errors="coerce")
+            df["SSD"] = pd.to_numeric(df["SSD"], errors="coerce")
+            df["trial_i"] = pd.to_numeric(df["trial_i"], errors="coerce").astype("Int64")
+            df["block_i"] = pd.to_numeric(df["block_i"], errors="coerce").astype("Int64")
+        
+        subjects_dict[subject_id] = df
+    
+    return subjects_dict
+
+
+def load_sst_experiment(origin: str) -> dict[str, pd.DataFrame]:
+    """
+    Load SST experiment data by origin name.
+    
+    Args:
+        origin: Either "datapruebas" or "neuropruebas".
+        
+    Returns:
+        Dictionary mapping subject_id to their DataFrame.
+        
+    Raises:
+        ValueError: If origin is not recognized.
+    """
+    if origin == "datapruebas":
+        folder_path = config.SST_DATAPRUEBAS_PATH
+    elif origin == "neuropruebas":
+        folder_path = config.SST_NEUROPRUEBAS_PATH
+    else:
+        raise ValueError(f"Unknown origin: {origin}. Must be 'datapruebas' or 'neuropruebas'.")
+    
+    return load_sst_subjects(folder_path)
+
+
+def load_all_sst_experiments() -> dict[str, dict[str, pd.DataFrame]]:
+    """
+    Load SST data from both datapruebas and neuropruebas.
+    
+    Returns:
+        Dictionary with keys 'datapruebas' and 'neuropruebas',
+        each containing a dict mapping subject_id to DataFrame.
+    """
+    return {
+        "datapruebas": load_sst_experiment("datapruebas"),
+        "neuropruebas": load_sst_experiment("neuropruebas"),
+    }
+

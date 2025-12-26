@@ -237,9 +237,16 @@ class DatapruebasTMTMapper(TMTMapper):
                 return subject_data.px2mm
         return None
 
+    def _extract_scale_factor_from_chinrest(self, subject_data_list: List[SubjectData]) -> Optional[float]:
+        for subject_data in subject_data_list:
+            if subject_data.trial_type == "virtual-chinrest" and subject_data.scale_factor is not None:
+                return subject_data.scale_factor
+        return None
+
     def _extract_session_data(self, subject_data_list: List[SubjectData], start_date: datetime) -> Optional[dict]:
         session_data = None
         px2mm = self._extract_px2mm_from_chinrest(subject_data_list)
+        scale_factor = self._extract_scale_factor_from_chinrest(subject_data_list)
         
         for subject_data in subject_data_list:
             if isinstance(subject_data.response, ResponseDetail):
@@ -252,7 +259,8 @@ class DatapruebasTMTMapper(TMTMapper):
                     "pad_usage": subject_data.response.usoDelPad,
                     "final_comment": subject_data.response.comentarioFinal,
                     "start_date": start_date.isoformat(),
-                    "px2mm": px2mm
+                    "px2mm": px2mm,
+                    "scale_factor": scale_factor
                 }
                 break
         return session_data
