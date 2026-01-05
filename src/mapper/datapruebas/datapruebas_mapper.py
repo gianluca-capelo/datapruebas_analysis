@@ -7,6 +7,7 @@ from neurotask.tmt.invalid_cause import InvalidCause
 from neurotask.tmt.mapper.mapper import TMTMapper
 from neurotask.tmt.metrics.distance_calculation import calculate_distance
 from neurotask.tmt.model.tmt_model import *
+from neurotask.tmt.preprocessing.interpolation import interpolate_trajectory
 
 from src.config import LOG_DIR
 from src.mapper.datapruebas.datapruebas_model import *
@@ -185,7 +186,7 @@ class DatapruebasTMTMapper(TMTMapper):
 
     def map_to_trial(self, first_click: CursorInfo, positions: List[Tuple[float, float]],
                      times: List[int], stimuli: StimulusTrial, trial_id: str,
-                     trial_order_of_appearance: int) -> TMTTrial:
+                     trial_order_of_appearance: int, interpolate: bool = True) -> TMTTrial:
 
         targets = [
             TMTTarget(
@@ -205,12 +206,30 @@ class DatapruebasTMTMapper(TMTMapper):
                 invalid_cause=InvalidCause.INVALID_LENGTH
             )
 
-        cursor_trail = [
-            CursorInfo(
-                position=Coordinate(x=pos[0], y=pos[1]),
-                time=time
-            ) for pos, time in zip(positions, times)
-        ]
+        # Paso de Interpolación
+        if interpolate:
+            # 1. Separar la lista de tuplas [(x,y), ...] en dos listas [x, ...] y [y, ...]
+            raw_x = [p[0] for p in positions]
+            raw_y = [p[1] for p in positions]
+
+            # 2. Llamar a la función con los argumentos correctos (x, y, t)
+            # Recibir los 3 valores de retorno (x, y, t)
+            interp_x, interp_y, interp_t = interpolate_trajectory(raw_x, raw_y, times)
+            
+            # 3. Crear el cursor_trail iterando sobre las 3 listas interpoladas
+            cursor_trail = [
+                CursorInfo(
+                    position=Coordinate(x=x, y=y),
+                    time=t
+                ) for x, y, t in zip(interp_x, interp_y, interp_t)
+            ]
+        else:
+            cursor_trail = [
+                CursorInfo(
+                    position=Coordinate(x=pos[0], y=pos[1]),
+                    time=time
+                ) for pos, time in zip(positions, times)
+            ]
 
         trial = TMTTrial(
             stimuli=targets,

@@ -11,6 +11,8 @@ from neurotask.tmt.mapper.mapper import TMTMapper
 from neurotask.tmt.model.tmt_model import TMTExperiment, TMTSubject, CursorInfo, Coordinate, TMTTarget, TrialType, \
     TMTTrial, SubjectPersonalInformation, SessionContext
 
+from neurotask.tmt.preprocessing.interpolation import interpolate_trajectory
+
 from src.config import LOG_DIR
 from src.mapper.datapruebas.datapruebas_model import SubjectData
 from src.mapper.neuropruebas.neuropruebas_model import NeuropruebasTarget
@@ -397,7 +399,7 @@ class NeuropruebasTMTMapper(TMTMapper):
 
     def map_to_trial(self, first_click: CursorInfo, positions: List[Tuple[float, float]],
                      times: List[int], stimuli: List[NeuropruebasTarget], trial_id: str,
-                     trial_order_of_appearance: int) -> TMTTrial:
+                     trial_order_of_appearance: int, interpolate: bool = True) -> TMTTrial:
 
         targets = [
             TMTTarget(
@@ -417,18 +419,37 @@ class NeuropruebasTMTMapper(TMTMapper):
                 invalid_cause=InvalidCause.INVALID_LENGTH
             )
 
-        cursor_trail = [
-            CursorInfo(
-                position=Coordinate(x=pos[0], y=pos[1]),
-                time=time
-            ) for pos, time in zip(positions, times)
-        ]
+        # Lógica de interpolación añadida
+        if interpolate:
+            # 1. Separar coordenadas
+            raw_x = [p[0] for p in positions]
+            raw_y = [p[1] for p in positions]
+
+            # 2. Interpolar
+            interp_x, interp_y, interp_t = interpolate_trajectory(raw_x, raw_y, times)
+            
+            # 3. Reconstruir cursor_trail
+            cursor_trail = [
+                CursorInfo(
+                    position=Coordinate(x=x, y=y),
+                    time=t
+                ) for x, y, t in zip(interp_x, interp_y, interp_t)
+            ]
+            final_times = interp_t
+        else:
+            cursor_trail = [
+                CursorInfo(
+                    position=Coordinate(x=pos[0], y=pos[1]),
+                    time=time
+                ) for pos, time in zip(positions, times)
+            ]
+            final_times = times
 
         trial = TMTTrial(
             stimuli=targets,
             cursor_trail=cursor_trail,
             trial_type=trial_type,
-            rt=times[-1] - times[0],
+            rt=final_times[-1] - final_times[0],  # Usar tiempos finales
             id=trial_id,
             order_of_appearance=trial_order_of_appearance,
             with_custom_start=True,
