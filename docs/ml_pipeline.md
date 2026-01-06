@@ -56,8 +56,10 @@ Each dataset defines its own features and target:
 | Dataset | Features | Target | Description |
 |---------|----------|--------|-------------|
 | `tmt_ssrt` | TMT (136 features) | `ssrt` | Trail Making Test features to predict Stop Signal Reaction Time |
+| `tmt_k` | TMT (136 features) | `K` | Trail Making Test features to predict K (CDT Capacity) |
+| `tmt_dprime` | TMT (136 features) | `dprimer/sensibilidad` | Trail Making Test features to predict d prime on Go No Go |
 
-### How `tmt_ssrt` is built
+### How `tmt_ssrt`, `tmt_k` and `tmt_dprime` are built
 
 1. **Load TMT:** Reads `analysis.csv` from the latest run in `data/hand_analysis/`
 2. **Filter:** Only trials with `is_valid == True`

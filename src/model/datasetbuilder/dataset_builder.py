@@ -8,6 +8,8 @@ import pandas as pd
 
 from src.loader.load_last_split import load_last_analysis
 from src.loader.sst_analysis_loader import get_latest_sst_analysis
+from src.loader.cdt_analysis_loader import get_latest_cdt_analysis
+from src.loader.gonogo_analysis_loader import get_latest_gonogo_analysis
 
 
 class DatasetBuilder:
@@ -15,7 +17,9 @@ class DatasetBuilder:
     Builds X, y datasets from cognitive task data.
     
     Supported datasets:
-        - 'tmt_ssrt': TMT features → SSRT target
+        - 'tmt_ssrt':   TMT features → SSRT target (Stop Signal Task)
+        - 'tmt_k':      TMT features → K capacity target (Change Detection Task)
+        - 'tmt_dprime': TMT features → d' sensitivity target (Go/No-Go Task)
     """
     
     # Columns to exclude from features (metadata/identifiers)
@@ -32,13 +36,13 @@ class DatasetBuilder:
         'alcohol_drugs', 'treatment', 'pad_usage', 'final_comment',
         'speed_threshold', 'px2mm',
     }
-    
+        
     def get_dataset(self, name: str) -> Tuple[np.ndarray, np.ndarray, list, str]:
         """
         Get X, y, feature_names, and target_name for a dataset.
         
         Args:
-            name: Dataset name (e.g., 'tmt_ssrt')
+            name: Dataset name (e.g., 'tmt_ssrt', 'tmt_k', 'tmt_dprime')
             
         Returns:
             X: Feature matrix (n_samples, n_features)
@@ -48,45 +52,84 @@ class DatasetBuilder:
         """
         if name == 'tmt_ssrt':
             return self._build_tmt_ssrt()
+        elif name == 'tmt_k':
+            return self._build_tmt_k()
+        elif name == 'tmt_dprime':
+            return self._build_tmt_dprime()
         else:
+            available = ['tmt_ssrt', 'tmt_k', 'tmt_dprime']
             raise ValueError(
-                f"Unknown dataset: {name}. Available: ['tmt_ssrt']"
+                f"Unknown dataset: {name}. Available: {available}"
             )
     
-    def _build_tmt_ssrt(self) -> Tuple[np.ndarray, np.ndarray, list, str]:
+    def _build_generic_dataset(self, loader_func, target_col: str, loader_name: str) -> Tuple[np.ndarray, np.ndarray, list, str]:
         """
-        Build dataset with TMT features and SSRT as target.
-        
-        Returns:
-            X: TMT features aggregated by subject
-            y: SSRT values from SST analysis
-            feature_names: List of TMT feature names
-            target_name: 'ssrt'
+        Generic helper to build TMT features vs Any Target.
         """
-        target_name = 'ssrt'
-        
         # Load TMT data
         tmt_df, _ = load_last_analysis()
         tmt_agg = self._aggregate_tmt(tmt_df)
         
-        # Load SST data
-        sst_result = get_latest_sst_analysis()
-        if sst_result is None:
-            raise RuntimeError("No SST analysis found. Run SST analysis first.")
-        sst_df = sst_result[0][['subject_id', target_name]]
+        # Load Target Task data
+        task_result = loader_func()
+        if task_result is None:
+            raise RuntimeError(f"No {loader_name} analysis found. Run {loader_name} analysis first.")
+        
+        # Asumimos que el loader devuelve (df, metadata) o similar, tomamos el df [0]
+        # y filtramos subject_id y el target
+        task_df = task_result[0]
+        
+        if target_col not in task_df.columns:
+             raise ValueError(f"Target column '{target_col}' not found in {loader_name} data. Available: {list(task_df.columns)}")
+
+        task_subset = task_df[['subject_id', target_col]]
         
         # Merge on subject_id
-        merged = pd.merge(tmt_agg, sst_df, on='subject_id', how='inner')
+        merged = pd.merge(tmt_agg, task_subset, on='subject_id', how='inner')
         
         if len(merged) == 0:
-            raise RuntimeError("No matching subjects between TMT and SST data.")
+            raise RuntimeError(f"No matching subjects between TMT and {loader_name} data.")
         
         # Extract X and y
-        feature_cols = [c for c in merged.columns if c not in ['subject_id', target_name]]
+        feature_cols = [c for c in merged.columns if c not in ['subject_id', target_col]]
         X = merged[feature_cols].values
-        y = merged[target_name].values
+        y = merged[target_col].values
         
-        return X, y, feature_cols, target_name
+        return X, y, feature_cols, target_col
+    
+    
+    def _build_tmt_ssrt(self) -> Tuple[np.ndarray, np.ndarray, list, str]:
+        """
+        Build dataset with TMT features and SSRT (Stop Signal) as target.
+        """
+        target_name = 'ssrt'
+        return self._build_generic_dataset(
+            loader_func=get_latest_sst_analysis,
+            target_col=target_name,
+            loader_name="SST"
+        )
+
+    def _build_tmt_k(self) -> Tuple[np.ndarray, np.ndarray, list, str]:
+        """
+        Build dataset with TMT features and K (CDT Capacity) as target.
+        """
+        target_name = 'K_6'
+        return self._build_generic_dataset(
+            loader_func=get_latest_cdt_analysis,
+            target_col=target_name,
+            loader_name="CDT"
+        )
+
+    def _build_tmt_dprime(self) -> Tuple[np.ndarray, np.ndarray, list, str]:
+        """
+        Build dataset with TMT features and d' (Go/No-Go Sensitivity) as target.
+        """
+        target_name = 'sensibilidad'
+        return self._build_generic_dataset(
+            loader_func=get_latest_gonogo_analysis,
+            target_col=target_name,
+            loader_name="Go/No-Go"
+        )
     
     def _aggregate_tmt(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -127,4 +170,9 @@ class DatasetBuilder:
         agg.columns = [f"{col}_{trial_type}" for col, trial_type in agg.columns]
         
         return agg.reset_index()
+    
+
+ 
+    
+
 
