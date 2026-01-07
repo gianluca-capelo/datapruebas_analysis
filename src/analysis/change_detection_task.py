@@ -12,16 +12,21 @@ import numpy as np
 import pandas as pd
 
 
+
+
 class ChangeDetectionTask:
     """
     Analyzer for Change Detection Task data.
     
     Computes working memory capacity (Cowan's K) and performance metrics.
     """
-    
+
     # Strings to detect experiment boundaries
     EXPERIMENT_START = "<h1 style = 'margin: 30px;'> A continuación comenzará"
     EXPERIMENT_END = "<h3>El experimento finalizó"
+
+    CDT_MIN_ACCURACY = 0.60
+    MAX_OMISSION_RATE = 0.20
     
     def run(self, subjects_data: dict[str, pd.DataFrame]) -> pd.DataFrame:
         """
@@ -106,12 +111,18 @@ class ChangeDetectionTask:
         no_response_4 = trials_4["response"].isna().sum()
         no_response_6 = trials_6["response"].isna().sum()
         trials_no_contestados = no_response_4 + no_response_6
+
         
         # Total test trials per set size (should be ~60 each)
         n_trials_4 = len(trials_4)
         n_trials_6 = len(trials_6)
         n_trials_total = n_trials_4 + n_trials_6
         
+        if (trials_no_contestados/n_trials_total) > self.MAX_OMISSION_RATE:
+            logging.warning(f" OMISSION_RATE > {self.MAX_OMISSION_RATE} for {subject_id}")
+            return None
+
+
         if n_trials_total == 0:
             logging.warning(f"No valid trials for {subject_id}")
             return None
@@ -129,6 +140,11 @@ class ChangeDetectionTask:
             accuracy_6 = correct_6 / responded_6
         else:
             accuracy_6 = 0
+
+        if accuracy_4 < 0 or accuracy_6 < 0:
+            logging.warning(f"Accuracy 4 or 6 < 0 for {subject_id}")
+            return None
+
         
         # Calculate Cowan's K: K = N * (2 * accuracy - 1)
         K_4 = 4 * (2 * accuracy_4 - 1)
@@ -138,6 +154,15 @@ class ChangeDetectionTask:
         total_correct = correct_4 + correct_6
         total_responded = responded_4 + responded_6
         accuracy = total_correct / total_responded if total_responded > 0 else 0
+
+        if accuracy < 0:
+            logging.warning(f"Accuracy < 0 for {subject_id}")
+            return None
+        elif accuracy < self.CDT_MIN_ACCURACY:
+            logging.warning(f"Accuracy < 0.6 for {subject_id}")
+            return None
+            
+
         
         # Response times (only for responded trials)
         rt_values = test_trials["rt"].dropna()

@@ -83,6 +83,9 @@ class GoNoGoTask:
     # Experiment boundary markers (preserved from original)
     EXPERIMENT_START = "<h1> A continuación comenzará"
     EXPERIMENT_END = "<h3>El experimento finalizó. En"
+    MIN_RT = 150        # Mínimo fisiológico (ms)
+    MIN_ACCURACY = 0.60 # Precisión mínima (60%)
+    MAX_FA_RATE = 0.90  # Para detectar inversión de comportamiento
     
     def run(self, subjects_data: dict[str, pd.DataFrame]) -> pd.DataFrame:
         """
@@ -160,27 +163,36 @@ class GoNoGoTask:
         logging.debug("Total trials: %d", total_trials)
         
         # Ensure RT is numeric
-        subject_df["rt"] = subject_df["rt"].astype(float)
+        subject_df["rt"] = pd.to_numeric(subject_df["rt"], errors='coerce')
+
+        # NUEVO: Filtrar respuestas anticipadas (< 150ms) antes de calcular medias
+        # Solo en los trials de interés
+        rt_validos = subject_df["rt"].iloc[idx_gonogo]
+        rt_validos = rt_validos[rt_validos >= self.MIN_RT] 
         
-        # Calculate RT metrics
-        media_rt = subject_df["rt"][idx_gonogo].mean()
-        mediana_rt = subject_df["rt"][idx_gonogo].median()
+        if len(rt_validos) == 0:
+             logging.warning("Subject %s excluded: No valid RTs > 150ms", subject_id)
+             failed_subjects.append((subject_id, "all_rts_premature"))
+             return None
+
+        media_rt = rt_validos.mean()
+        mediana_rt = rt_validos.median()
         
-        # Handle missing stimulus color data (fallback to correct_response)
-        # This preserves the original logic exactly
-        if subject_df["stimulus"][idx_gonogo].str.count("blue").sum() == 0:
-            lista_correct_response = []
+        # CORRECCIÓN DE LÓGICA:
+        # Si la columna stimulus no tiene "blue", lo inferimos de 'correct_response'.
+        # Lógica: ' ' (espacio) = Go (Blue). NaN/Vacío = No-Go (Orange).
+        stimulus_slice = subject_df["stimulus"].iloc[idx_gonogo]
+        if stimulus_slice.str.count("blue").sum() == 0:
             if "correct_response" not in subject_df.columns:
-                logging.warning(
-                    "No 'correct_response' column for subject %s", subject_id
-                )
+                logging.warning("No 'correct_response' column for subject %s", subject_id)
                 return None
-            for i in subject_df["correct_response"]:
-                if i != " ":
-                    lista_correct_response.append("blue")
-                else:
-                    lista_correct_response.append("orange")
-            subject_df["stimulus"] = lista_correct_response
+            
+            # Usamos lógica vectorizada: Si es espacio (' ') es blue, sino orange
+            # Esto arregla el error de conteo 45 vs 105
+            inferred_stimulus = subject_df["correct_response"].iloc[idx_gonogo].apply(
+                lambda x: "blue" if str(x) == " " else "orange"
+            )
+            subject_df.loc[idx_gonogo, "stimulus"] = inferred_stimulus
         
         # Count correct responses
         if "true" in subject_df["correct"].values:
@@ -190,6 +202,13 @@ class GoNoGoTask:
         
         # Accuracy
         accuracy = cant_resp_correctas / total_trials
+
+        # NUEVO: Exclusión por baja performance
+        if accuracy < self.MIN_ACCURACY:
+            logging.warning("Subject %s excluded: Low accuracy (%.2f)", subject_id, accuracy)
+            failed_subjects.append((subject_id, "low_accuracy"))
+            return None
+
         
         # Validate accuracy against jsPsych (if available)
         if "accuracy" in subject_df.columns:
@@ -246,6 +265,13 @@ class GoNoGoTask:
         # Calculate False Alarm rate and Hit Rate
         FA = len(FP) / cant_nogo_trials if cant_nogo_trials > 0 else 0
         HR = len(TP) / (len(TP) + len(FN)) if (len(TP) + len(FN)) > 0 else 0
+        
+        # NUEVO: Exclusión si el sujeto invirtió la tarea (Falsas alarmas > Aciertos)
+        # Esto indica d' negativo (o que presionó en Naranja y no en Azul)
+        if FA > HR:
+             logging.warning("Subject %s excluded: Inverted performance (FA > HR)", subject_id)
+             failed_subjects.append((subject_id, "inverted_performance_fa_gt_hr"))
+             return None
         
         # Calculate efficiency metrics
         acc_go = len(TP) / cant_go_trials if cant_go_trials > 0 else 0
