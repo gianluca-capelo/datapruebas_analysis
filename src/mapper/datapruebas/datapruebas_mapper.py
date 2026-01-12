@@ -197,7 +197,7 @@ class DatapruebasTMTMapper(TMTMapper):
 
         trial_type = self._resolve_trial_type(targets)
 
-        if len(positions) == 0 or len(positions) != len(times):
+        if len(positions) < 2 or len(positions) != len(times):
             return TMTTrial.invalid_trial(
                 trial_id=trial_id,
                 order_of_appearance=trial_order_of_appearance,
