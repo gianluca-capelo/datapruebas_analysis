@@ -412,7 +412,7 @@ class NeuropruebasTMTMapper(TMTMapper):
 
         trial_type = self._resolve_trial_type(targets)
 
-        if len(positions) == 0 or len(positions) != len(times):
+        if len(positions) < 2 or len(positions) != len(times) or (interpolate and len(set(times)) < 2):
             return TMTTrial.invalid_trial(
                 trial_id=trial_id,
                 order_of_appearance=trial_order_of_appearance,
