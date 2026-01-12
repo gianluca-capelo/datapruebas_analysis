@@ -9,6 +9,7 @@ from neurotask.tmt.metrics.distance_calculation import calculate_distance
 from neurotask.tmt.model.tmt_model import *
 from neurotask.tmt.preprocessing.interpolation import interpolate_trajectory
 
+from src import config
 from src.config import LOG_DIR
 from src.mapper.datapruebas.datapruebas_model import *
 
@@ -141,7 +142,7 @@ class DatapruebasTMTMapper(TMTMapper):
                 first_click = self.get_default_first_trial(positions, times)
 
             trials.append(self.map_to_trial(first_click, positions, times, stimuli, trial_id=f"DATAPRUEBAS_{str(i)}",
-                                            trial_order_of_appearance=i))
+                                            trial_order_of_appearance=i, interpolate=config.INTERPOLATE_TRAJECTORY))
 
         return trials
 

@@ -13,6 +13,7 @@ from neurotask.tmt.model.tmt_model import TMTExperiment, TMTSubject, CursorInfo,
 
 from neurotask.tmt.preprocessing.interpolation import interpolate_trajectory
 
+from src import config
 from src.config import LOG_DIR
 from src.mapper.datapruebas.datapruebas_model import SubjectData
 from src.mapper.neuropruebas.neuropruebas_model import NeuropruebasTarget
@@ -294,6 +295,7 @@ class NeuropruebasTMTMapper(TMTMapper):
                 stimuli=stimuli,
                 trial_id=f"NEUROPRUEBAS_{i}",
                 trial_order_of_appearance=i,
+                interpolate=config.INTERPOLATE_TRAJECTORY
             )
             trials.append(trial)
 
