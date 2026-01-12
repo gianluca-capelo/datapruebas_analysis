@@ -15,7 +15,8 @@ def is_pixel_coordinates(trial: TMTTrial) -> bool:
 
 
 def plot_with_labels_scatter(trial: TMTTrial, target_radius: float, labels: list[str], labels_title="Labels",
-                                   title="Cursor tracking during a TMT trial", cmap_name='tab10', plot_start=False):
+                                   title="Cursor tracking during a TMT trial", cmap_name='tab10', plot_start=False,
+                                   legend_outside=False):
 
     # Validación
     cursor_trail = trial.get_cursor_trail_from_start()
@@ -67,7 +68,13 @@ def plot_with_labels_scatter(trial: TMTTrial, target_radius: float, labels: list
     handles = [plt.Line2D([0], [0], marker='o', color='w', label=label,
                           markerfacecolor=color, markersize=8)
                for label, color in label_to_color.items()]
-    ax.legend(handles=handles, title=labels_title)
+    
+    if legend_outside:
+        # Colocar leyenda fuera del área del plot
+        ax.legend(handles=handles, title=labels_title, bbox_to_anchor=(1.05, 1), loc='upper left')
+        plt.tight_layout()
+    else:
+        ax.legend(handles=handles, title=labels_title)
 
     # Estética - ajustar límites basado en los datos
     ax.set_xlabel('X screen coordinate (pixels)')
