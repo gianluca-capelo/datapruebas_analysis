@@ -138,6 +138,6 @@ def plot_crosses_segmentation(
         cmap_name=cmap_name,
         legend_outside=True  # Colocar leyenda fuera para no tapar el trial
     )
-    
+
     return fig
 
