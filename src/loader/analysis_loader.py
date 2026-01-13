@@ -160,6 +160,7 @@ def save_results(
         "cut_criteria": config_file.CUT_CRITERIA,
         "consecutive_points": config_file.CONSECUTIVE_POINTS,
         "calculate_crosses": config_file.CALCULATE_CROSSES,
+        "interpolate_trajectory": config_file.INTERPOLATE_TRAJECTORY,
         "random_state": random_state,
         "test_size": test_size,
         "metadata_path": config_file.METADATA_CSV,
