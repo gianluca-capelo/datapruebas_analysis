@@ -55,8 +55,8 @@ RADIUS_HEIGHT = 0.0275
 CONSECUTIVE_POINTS = 5
 CORRECT_THRESHOLD = 10
 CUT_CRITERIA = "MINIMUM_TARGETS"
-CALCULATE_CROSSES = False
-INTERPOLATE_TRAJECTORY = False
+CALCULATE_CROSSES = True
+INTERPOLATE_TRAJECTORY = True
 
 # =============================================================================
 # ML Pipeline Configuration
