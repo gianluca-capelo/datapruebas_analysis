@@ -197,6 +197,10 @@ def calculate_trial_differences(merged_df: pd.DataFrame,
         if col_base not in merged_df.columns or col_interp not in merged_df.columns:
             continue
 
+        # Saltar columnas booleanas
+        if merged_df[col_base].dtype == bool or merged_df[col_interp].dtype == bool:
+            continue
+
         # Convertir a numérico
         base = pd.to_numeric(merged_df[col_base], errors='coerce')
         interp = pd.to_numeric(merged_df[col_interp], errors='coerce')
@@ -986,6 +990,11 @@ def main():
                         print(f"{trial_row['subject_id'][:44]:<45} {trial_row['trial_id']:<8} "
                               f"{trial_row[col_base]:<12.4f} {trial_row[col_interp]:<12.4f} "
                               f"{trial_row['diff_pct']:<10.2f}")
+
+            # Guardar CSV con diferencias por métrica
+            csv_output_path = Path(DATA_DIR) / "comparison_metrics_diff.csv"
+            trial_diff_df.to_csv(csv_output_path, index=False)
+            print(f"\nCSV de diferencias por métrica guardado en: {csv_output_path}")
 
     # 6. Análisis profundo (solo si hay diferencias)
     if len(differences_df) > 0:
