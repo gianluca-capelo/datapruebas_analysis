@@ -128,11 +128,12 @@ def plot_single_trial(experiment, valid_analysis, subject_id: str, trial_id: str
     # Create safe filename (replace UUID dashes)
     safe_subject_id = subject_id.replace("-", "_") if "-" in subject_id else subject_id
     safe_trial_id = trial_id.replace("-", "_") if "-" in trial_id else trial_id
+    interp_suffix = "_interp" if config.INTERPOLATE_TRAJECTORY else "_no_interp"
     output_path = os.path.join(
-        output_dir, 
-        f"segmentation_plot_subject_{safe_subject_id}_trial_{safe_trial_id}.png"
+        output_dir,
+        f"segmentation_plot_subject_{safe_subject_id}_trial_{safe_trial_id}{interp_suffix}.png"
     )
-    
+
     success = plot_trial(subject, trial_id, subject_analysis, output_path)
     if not success:
         print(f"Warning: Could not plot trial {trial_id} for subject {subject_id}")
@@ -166,11 +167,12 @@ def plot_all_trials(experiment, valid_analysis, trial_id: str, output_dir: str):
             # Create safe filename (replace UUID dashes)
             safe_subject_id = subject_id.replace("-", "_") if "-" in subject_id else subject_id
             safe_trial_id = trial_id.replace("-", "_") if "-" in trial_id else trial_id
+            interp_suffix = "_interp" if config.INTERPOLATE_TRAJECTORY else "_no_interp"
             output_path = os.path.join(
                 output_dir,
-                f"segmentation_plot_subject_{safe_subject_id}_trial_{safe_trial_id}.png"
+                f"segmentation_plot_subject_{safe_subject_id}_trial_{safe_trial_id}{interp_suffix}.png"
             )
-            
+
             success = plot_trial(subject, trial_id, subject_analysis, output_path)
             if success:
                 plotted_count += 1
