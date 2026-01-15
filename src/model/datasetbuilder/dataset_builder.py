@@ -2,9 +2,12 @@
 DatasetBuilder: Constructs ML datasets from multiple cognitive task analyses.
 """
 
+import logging
 from typing import Tuple
 import numpy as np
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 from src.loader.load_last_split import load_last_analysis
 from src.loader.sst_analysis_loader import get_latest_sst_analysis
@@ -134,18 +137,22 @@ class DatasetBuilder:
     def _aggregate_tmt(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Aggregate TMT trial-level data to subject-level.
-        
+
         Pivots by trial_type (PART_A, PART_B) and computes mean per subject.
-        
+        Excludes subjects without at least one valid trial of each type.
+
         Args:
             df: TMT DataFrame with trial-level data
-            
+
         Returns:
             DataFrame with one row per subject and columns like 'rt_PART_A', 'rt_PART_B'
         """
         # Filter valid trials only (handle both bool and string 'True')
         df_valid = df[df['is_valid'].astype(str) == 'True'].copy()
-        
+
+        # Filter subjects by trial type coverage (must have >=1 PART_A and >=1 PART_B)
+        df_valid = self._filter_subjects_by_trial_coverage(df_valid)
+
         # Auto-detect numeric feature columns (exclude metadata)
         feature_cols = []
         for col in df_valid.columns:
@@ -157,7 +164,7 @@ class DatasetBuilder:
             if numeric_col.notna().mean() > 0.5:
                 df_valid[col] = numeric_col
                 feature_cols.append(col)
-        
+
         # Pivot by trial_type and aggregate with mean
         agg = df_valid.pivot_table(
             index='subject_id',
@@ -165,11 +172,92 @@ class DatasetBuilder:
             values=feature_cols,
             aggfunc='mean'
         )
-        
+
         # Flatten column names: (rt, PART_A) → rt_PART_A
         agg.columns = [f"{col}_{trial_type}" for col, trial_type in agg.columns]
-        
+
         return agg.reset_index()
+
+    def _filter_subjects_by_trial_coverage(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Filter out subjects that don't have at least one trial of each type (PART_A and PART_B).
+
+        Args:
+            df: DataFrame with valid trials only
+
+        Returns:
+            DataFrame with only subjects that have both trial types
+        """
+        required_types = ['PART_A', 'PART_B']
+
+        # Count trials per subject per type
+        trial_type_counts = df.groupby('subject_id')['trial_type'].value_counts().unstack(fill_value=0)
+
+        # Ensure both columns exist (edge case: dataset might have only one type)
+        for trial_type in required_types:
+            if trial_type not in trial_type_counts.columns:
+                trial_type_counts[trial_type] = 0
+
+        # Identify valid and excluded subjects
+        valid_mask = (trial_type_counts['PART_A'] >= 1) & (trial_type_counts['PART_B'] >= 1)
+        valid_subjects = trial_type_counts[valid_mask].index.tolist()
+        excluded_subjects = trial_type_counts[~valid_mask].index.tolist()
+
+        # Log exclusions
+        if excluded_subjects:
+            logger.warning(
+                f"Excluding {len(excluded_subjects)} subjects without both PART_A and PART_B trials: "
+                f"{excluded_subjects[:5]}{'...' if len(excluded_subjects) > 5 else ''}"
+            )
+            for subj in excluded_subjects[:5]:
+                counts = trial_type_counts.loc[subj]
+                logger.debug(f"  Subject {subj}: PART_A={counts['PART_A']}, PART_B={counts['PART_B']}")
+
+        # Validate at least some subjects remain
+        assert len(valid_subjects) > 0, "No subjects remain after trial type coverage filter"
+
+        return df[df['subject_id'].isin(valid_subjects)]
+
+    def get_exclusion_report(self, df: pd.DataFrame) -> dict:
+        """
+        Generate a report of subjects that would be excluded due to missing trial types.
+
+        Args:
+            df: TMT DataFrame with trial-level data (before aggregation)
+
+        Returns:
+            dict with keys:
+                - 'total_subjects': int
+                - 'valid_subjects': int
+                - 'excluded_subjects': list of subject_ids
+                - 'exclusion_reasons': dict mapping subject_id to reason
+        """
+        df_valid = df[df['is_valid'].astype(str) == 'True'].copy()
+        trial_type_counts = df_valid.groupby('subject_id')['trial_type'].value_counts().unstack(fill_value=0)
+
+        for trial_type in ['PART_A', 'PART_B']:
+            if trial_type not in trial_type_counts.columns:
+                trial_type_counts[trial_type] = 0
+
+        exclusion_reasons = {}
+        for subj in trial_type_counts.index:
+            part_a = trial_type_counts.loc[subj, 'PART_A']
+            part_b = trial_type_counts.loc[subj, 'PART_B']
+            if part_a == 0 and part_b == 0:
+                exclusion_reasons[subj] = "No valid trials (PART_A=0, PART_B=0)"
+            elif part_a == 0:
+                exclusion_reasons[subj] = f"Missing PART_A (PART_B={part_b})"
+            elif part_b == 0:
+                exclusion_reasons[subj] = f"Missing PART_B (PART_A={part_a})"
+
+        valid_mask = (trial_type_counts['PART_A'] >= 1) & (trial_type_counts['PART_B'] >= 1)
+
+        return {
+            'total_subjects': len(trial_type_counts),
+            'valid_subjects': int(valid_mask.sum()),
+            'excluded_subjects': list(exclusion_reasons.keys()),
+            'exclusion_reasons': exclusion_reasons
+        }
     
 
  
