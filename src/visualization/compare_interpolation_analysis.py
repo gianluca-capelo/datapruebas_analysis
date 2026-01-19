@@ -210,7 +210,7 @@ if __name__ == "__main__":
 
     comparison = compare_metrics(df_interp, df_raw)
 
-    output_path = Path(config.FIGURES_DIR) / "interpolation_comparison.csv"
+    output_path = Path(config.DATA_DIR) / "interpolation_comparison.csv"
     output_path.parent.mkdir(parents=True, exist_ok=True)
     comparison.to_csv(output_path, index=False)
     print(f"Saved to: {output_path}")
