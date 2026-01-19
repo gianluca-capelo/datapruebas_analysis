@@ -65,13 +65,31 @@ class DatasetBuilder:
                 f"Unknown dataset: {name}. Available: {available}"
             )
     
+    def _load_valid_tmt_trials(self) -> pd.DataFrame:
+        """
+        Load TMT data and filter to valid trials.
+
+        Returns:
+            DataFrame with valid trials from subjects with both trial types.
+        """
+        tmt_df, _ = load_last_analysis()
+        return self._get_valid_tmt_trials(tmt_df)
+
+    def _load_tmt_aggregated(self) -> pd.DataFrame:
+        """
+        Load and aggregate TMT data to subject level.
+
+        Returns:
+            DataFrame with one row per subject and aggregated TMT features.
+        """
+        tmt_valid = self._load_valid_tmt_trials()
+        return self._aggregate_tmt(tmt_valid)
+
     def _build_generic_dataset(self, loader_func, target_col: str, loader_name: str) -> Tuple[np.ndarray, np.ndarray, list, str]:
         """
         Generic helper to build TMT features vs Any Target.
         """
-        # Load TMT data
-        tmt_df, _ = load_last_analysis()
-        tmt_agg = self._aggregate_tmt(tmt_df)
+        tmt_agg = self._load_tmt_aggregated()
         
         # Load Target Task data
         task_result = loader_func()
@@ -134,18 +152,18 @@ class DatasetBuilder:
             loader_name="Go/No-Go"
         )
     
-    def _aggregate_tmt(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _get_valid_tmt_trials(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Aggregate TMT trial-level data to subject-level.
+        Filter TMT data to valid trials with proper coverage.
 
-        Pivots by trial_type (PART_A, PART_B) and computes mean per subject.
-        Excludes subjects without at least one valid trial of each type.
+        Filters to valid trials only and excludes subjects without
+        at least one valid trial of each type (PART_A and PART_B).
 
         Args:
             df: TMT DataFrame with trial-level data
 
         Returns:
-            DataFrame with one row per subject and columns like 'rt_PART_A', 'rt_PART_B'
+            DataFrame with valid trials from subjects with both trial types
         """
         # Filter valid trials only (handle both bool and string 'True')
         df_valid = df[df['is_valid'].astype(str) == 'True'].copy()
@@ -153,6 +171,20 @@ class DatasetBuilder:
         # Filter subjects by trial type coverage (must have >=1 PART_A and >=1 PART_B)
         df_valid = self._filter_subjects_by_trial_coverage(df_valid)
 
+        return df_valid
+
+    def _aggregate_tmt(self, df_valid: pd.DataFrame) -> pd.DataFrame:
+        """
+        Aggregate TMT trial-level data to subject-level.
+
+        Pivots by trial_type (PART_A, PART_B) and computes mean per subject.
+
+        Args:
+            df_valid: TMT DataFrame with valid trials (already filtered)
+
+        Returns:
+            DataFrame with one row per subject and columns like 'rt_PART_A', 'rt_PART_B'
+        """
         # Auto-detect numeric feature columns (exclude metadata)
         feature_cols = []
         for col in df_valid.columns:
