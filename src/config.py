@@ -56,7 +56,7 @@ CONSECUTIVE_POINTS = 5
 CORRECT_THRESHOLD = 10
 CUT_CRITERIA = "MINIMUM_TARGETS"
 CALCULATE_CROSSES = False
-INTERPOLATE_TRAJECTORY = False
+INTERPOLATE_TRAJECTORY = True
 
 # =============================================================================
 # ML Pipeline Configuration
