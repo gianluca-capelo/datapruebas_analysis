@@ -2,6 +2,43 @@ import matplotlib.pyplot as plt
 from neurotask.tmt.model.tmt_model import TMTTrial
 
 
+def plot_trial_simple(ax, trial: TMTTrial, target_radius: float, title: str = ""):
+    """
+    Plot a trial trajectory on an existing axis without segmentation.
+
+    Args:
+        ax: Matplotlib axis to plot on.
+        trial: TMTTrial object.
+        target_radius: Radius of targets in pixels.
+        title: Title for the subplot.
+    """
+    if trial is None:
+        ax.set_title(f"{title}\nNo encontrado")
+        ax.axis('off')
+        return
+
+    x = [c.position.x for c in trial.cursor_trail]
+    y = [c.position.y for c in trial.cursor_trail]
+
+    ax.plot(x, y, 'b-', linewidth=0.5, alpha=0.7)
+    ax.scatter(x, y, s=1, c='blue', alpha=0.3)
+    ax.plot(x[0], y[0], 'go', markersize=5)
+    ax.plot(x[-1], y[-1], 'ro', markersize=5)
+
+    for target in trial.stimuli:
+        circle = plt.Circle((target.position.x, target.position.y),
+                           target_radius, fill=False, color='gray', linestyle='--')
+        ax.add_patch(circle)
+        ax.text(target.position.x, target.position.y, target.content,
+               ha='center', va='center', fontsize=6)
+
+    ax.set_aspect('equal')
+    ax.invert_yaxis()
+    ax.set_title(f"{title}\n({len(x)} puntos)", fontsize=9)
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+
 def is_pixel_coordinates(trial: TMTTrial) -> bool:
     """Detect if the trial data is in pixel coordinates.
     
