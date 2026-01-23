@@ -296,7 +296,7 @@ class NeuropruebasTMTMapper(TMTMapper):
                 trial_id=f"NEUROPRUEBAS_{i}",
                 trial_order_of_appearance=i,
                 interpolate=config.INTERPOLATE_TRAJECTORY,
-                target_freq_hz=config.TARGET_FREQ_HZ
+                target_freq_hz=config.INTERPOLATION_TARGET_FREQ_HZ
             )
             trials.append(trial)
 

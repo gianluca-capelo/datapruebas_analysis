@@ -143,7 +143,7 @@ class DatapruebasTMTMapper(TMTMapper):
 
             trials.append(self.map_to_trial(first_click, positions, times, stimuli, trial_id=f"DATAPRUEBAS_{str(i)}",
                                             trial_order_of_appearance=i, interpolate=config.INTERPOLATE_TRAJECTORY,
-                                            target_freq_hz=config.TARGET_FREQ_HZ))
+                                            target_freq_hz=config.INTERPOLATION_TARGET_FREQ_HZ))
 
         return trials
 
