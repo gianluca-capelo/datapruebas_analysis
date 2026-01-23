@@ -57,6 +57,7 @@ CORRECT_THRESHOLD = 10
 CUT_CRITERIA = "MINIMUM_TARGETS"
 CALCULATE_CROSSES = False
 INTERPOLATE_TRAJECTORY = True
+TARGET_FREQ_HZ = 60
 
 # =============================================================================
 # ML Pipeline Configuration

@@ -161,6 +161,7 @@ def save_results(
         "consecutive_points": config_file.CONSECUTIVE_POINTS,
         "calculate_crosses": config_file.CALCULATE_CROSSES,
         "interpolate_trajectory": config_file.INTERPOLATE_TRAJECTORY,
+        "target_freq_hz": config_file.TARGET_FREQ_HZ if config_file.INTERPOLATE_TRAJECTORY else None,
         "random_state": random_state,
         "test_size": test_size,
         "metadata_path": config_file.METADATA_CSV,

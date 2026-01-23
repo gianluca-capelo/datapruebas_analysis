@@ -295,7 +295,8 @@ class NeuropruebasTMTMapper(TMTMapper):
                 stimuli=stimuli,
                 trial_id=f"NEUROPRUEBAS_{i}",
                 trial_order_of_appearance=i,
-                interpolate=config.INTERPOLATE_TRAJECTORY
+                interpolate=config.INTERPOLATE_TRAJECTORY,
+                target_freq_hz=config.TARGET_FREQ_HZ
             )
             trials.append(trial)
 
@@ -401,7 +402,8 @@ class NeuropruebasTMTMapper(TMTMapper):
 
     def map_to_trial(self, first_click: CursorInfo, positions: List[Tuple[float, float]],
                      times: List[int], stimuli: List[NeuropruebasTarget], trial_id: str,
-                     trial_order_of_appearance: int, interpolate: bool = True) -> TMTTrial:
+                     trial_order_of_appearance: int, interpolate: bool = True,
+                     target_freq_hz: int = 60) -> TMTTrial:
 
         targets = [
             TMTTarget(
@@ -428,7 +430,7 @@ class NeuropruebasTMTMapper(TMTMapper):
             raw_y = [p[1] for p in positions]
 
             # 2. Interpolar
-            interp_x, interp_y, interp_t = interpolate_trajectory(raw_x, raw_y, times)
+            interp_x, interp_y, interp_t = interpolate_trajectory(raw_x, raw_y, times, target_freq_hz)
             
             # 3. Reconstruir cursor_trail
             cursor_trail = [

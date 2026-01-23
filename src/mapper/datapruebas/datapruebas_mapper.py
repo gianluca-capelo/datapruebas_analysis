@@ -142,7 +142,8 @@ class DatapruebasTMTMapper(TMTMapper):
                 first_click = self.get_default_first_trial(positions, times)
 
             trials.append(self.map_to_trial(first_click, positions, times, stimuli, trial_id=f"DATAPRUEBAS_{str(i)}",
-                                            trial_order_of_appearance=i, interpolate=config.INTERPOLATE_TRAJECTORY))
+                                            trial_order_of_appearance=i, interpolate=config.INTERPOLATE_TRAJECTORY,
+                                            target_freq_hz=config.TARGET_FREQ_HZ))
 
         return trials
 
@@ -187,7 +188,8 @@ class DatapruebasTMTMapper(TMTMapper):
 
     def map_to_trial(self, first_click: CursorInfo, positions: List[Tuple[float, float]],
                      times: List[int], stimuli: StimulusTrial, trial_id: str,
-                     trial_order_of_appearance: int, interpolate: bool = True) -> TMTTrial:
+                     trial_order_of_appearance: int, interpolate: bool = True,
+                     target_freq_hz: int = 60) -> TMTTrial:
 
         targets = [
             TMTTarget(
@@ -215,7 +217,7 @@ class DatapruebasTMTMapper(TMTMapper):
 
             # 2. Llamar a la función con los argumentos correctos (x, y, t)
             # Recibir los 3 valores de retorno (x, y, t)
-            interp_x, interp_y, interp_t = interpolate_trajectory(raw_x, raw_y, times)
+            interp_x, interp_y, interp_t = interpolate_trajectory(raw_x, raw_y, times, target_freq_hz)
             
             # 3. Crear el cursor_trail iterando sobre las 3 listas interpoladas
             cursor_trail = [

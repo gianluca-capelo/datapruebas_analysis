@@ -27,9 +27,41 @@ def _get_run_directory_by_date(date: str) -> Path:
     return max(candidates, key=lambda d: d.name)
 
 
-def _load_valid_tmt_trials_by_date(date: str) -> pd.DataFrame:
-    """Load valid TMT trials from analysis by date."""
+def load_interpolated_tmt_trials_by_date(date: str) -> pd.DataFrame:
+    """Load valid TMT trials from interpolated analysis by date.
+
+    Raises:
+        ValueError: If interpolate_trajectory is not True
+    """
     run_dir = _get_run_directory_by_date(date)
+    run_config = get_run_configuration(run_dir)
+    is_interpolated = run_config.get("interpolate_trajectory", False)
+
+    if not is_interpolated:
+        raise ValueError(
+            f"Analysis {date} has interpolate_trajectory=False, expected True"
+        )
+
+    df = pd.read_csv(run_dir / "analysis.csv", on_bad_lines='warn')
+    builder = DatasetBuilder()
+    return builder._get_valid_tmt_trials(df)
+
+
+def load_raw_tmt_trials_by_date(date: str) -> pd.DataFrame:
+    """Load valid TMT trials from raw (non-interpolated) analysis by date.
+
+    Raises:
+        ValueError: If interpolate_trajectory is not False
+    """
+    run_dir = _get_run_directory_by_date(date)
+    run_config = get_run_configuration(run_dir)
+    is_interpolated = run_config.get("interpolate_trajectory", False)
+
+    if is_interpolated:
+        raise ValueError(
+            f"Analysis {date} has interpolate_trajectory=True, expected False"
+        )
+
     df = pd.read_csv(run_dir / "analysis.csv", on_bad_lines='warn')
     builder = DatasetBuilder()
     return builder._get_valid_tmt_trials(df)
@@ -52,26 +84,8 @@ def load_interpolated_and_raw_analyses(
     Raises:
         ValueError: If interpolation settings don't match expected values
     """
-    run_dir_interp = _get_run_directory_by_date(interpolated_date)
-    run_dir_raw = _get_run_directory_by_date(raw_date)
-
-    config_interp = get_run_configuration(run_dir_interp)
-    config_raw = get_run_configuration(run_dir_raw)
-
-    is_interp = config_interp.get("interpolate_trajectory", False)
-    is_raw = config_raw.get("interpolate_trajectory", True)
-
-    if not is_interp:
-        raise ValueError(
-            f"Analysis {interpolated_date} has interpolate_trajectory=False, expected True"
-        )
-    if is_raw:
-        raise ValueError(
-            f"Analysis {raw_date} has interpolate_trajectory=True, expected False"
-        )
-
-    df_interpolated = _load_valid_tmt_trials_by_date(interpolated_date)
-    df_raw = _load_valid_tmt_trials_by_date(raw_date)
+    df_interpolated = load_interpolated_tmt_trials_by_date(interpolated_date)
+    df_raw = load_raw_tmt_trials_by_date(raw_date)
 
     # Keep only trials present in both analyses
     common_trials = set(zip(df_interpolated['subject_id'], df_interpolated['trial_id'])) & \
