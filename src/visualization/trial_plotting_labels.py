@@ -1,6 +1,14 @@
 import matplotlib.pyplot as plt
 from neurotask.tmt.model.tmt_model import TMTTrial
 
+from src.visualization.trial_plotting_helpers import (
+    extract_cursor_coordinates,
+    draw_trial_trajectory,
+    draw_trial_targets,
+    mark_start_end_points,
+    configure_trial_axes
+)
+
 
 def plot_trial_simple(ax, trial: TMTTrial, target_radius: float, title: str = ""):
     """
@@ -17,26 +25,14 @@ def plot_trial_simple(ax, trial: TMTTrial, target_radius: float, title: str = ""
         ax.axis('off')
         return
 
-    x = [c.position.x for c in trial.cursor_trail]
-    y = [c.position.y for c in trial.cursor_trail]
+    x, y = extract_cursor_coordinates(trial, from_start=False)
 
-    ax.plot(x, y, 'b-', linewidth=0.5, alpha=0.7)
-    ax.scatter(x, y, s=1, c='blue', alpha=0.3)
-    ax.plot(x[0], y[0], 'go', markersize=5)
-    ax.plot(x[-1], y[-1], 'ro', markersize=5)
+    draw_trial_trajectory(ax, x, y)
+    mark_start_end_points(ax, x, y)
+    draw_trial_targets(ax, trial, target_radius)
+    configure_trial_axes(ax, hide_ticks=True)
 
-    for target in trial.stimuli:
-        circle = plt.Circle((target.position.x, target.position.y),
-                           target_radius, fill=False, color='gray', linestyle='--')
-        ax.add_patch(circle)
-        ax.text(target.position.x, target.position.y, target.content,
-               ha='center', va='center', fontsize=6)
-
-    ax.set_aspect('equal')
-    ax.invert_yaxis()
     ax.set_title(f"{title}\n({len(x)} puntos)", fontsize=9)
-    ax.set_xticks([])
-    ax.set_yticks([])
 
 
 def is_pixel_coordinates(trial: TMTTrial) -> bool:
@@ -90,11 +86,7 @@ def plot_with_labels_scatter(trial: TMTTrial, target_radius: float, labels: list
     ax.scatter(cursor_x, cursor_y, c=point_colors, s=20, zorder=4)
 
     # Dibujar los targets
-    for target in trial.stimuli:
-        tx, ty = target.position.x, target.position.y
-        circle = plt.Circle((tx, ty), radius_px, color='steelblue', alpha=0.3, zorder=5)
-        ax.add_patch(circle)
-        ax.text(tx, ty, target.content, color='black', fontsize=8, ha='center', va='center', zorder=6)
+    draw_trial_targets(ax, trial, radius_px)
 
     # Marcar el primer clic
     if plot_start and trial.start:
@@ -114,17 +106,7 @@ def plot_with_labels_scatter(trial: TMTTrial, target_radius: float, labels: list
         ax.legend(handles=handles, title=labels_title)
 
     # Estética - ajustar límites basado en los datos
-    ax.set_xlabel('X screen coordinate (pixels)')
-    ax.set_ylabel('Y screen coordinate (pixels)')
     ax.set_title(title)
-    
-    # Calcular límites basados en los datos reales
-    margin = 50
-    x_min, x_max = min(cursor_x) - margin, max(cursor_x) + margin
-    y_min, y_max = min(cursor_y) - margin, max(cursor_y) + margin
-    
-    ax.set_xlim(x_min, x_max)
-    ax.set_ylim(y_max, y_min)  # invertir eje Y (como en pantalla)
-    ax.set_aspect('equal', adjustable='box')
+    configure_trial_axes(ax, x=list(cursor_x), y=list(cursor_y), show_labels=True)
 
     return fig
