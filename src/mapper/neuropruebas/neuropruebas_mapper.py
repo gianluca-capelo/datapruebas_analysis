@@ -237,10 +237,14 @@ class NeuropruebasTMTMapper(TMTMapper):
         if len(testing_trials) == 0:
             raise ValueError("Subject must have at least one testing trial")
 
+        # Extract and apply multiplier to target radius
+        raw_radius = self._extract_first_valid_numeric(subject_data, 'radius')
+        target_radius = raw_radius * config.TARGET_RADIUS_MULTIPLIER if raw_radius is not None else None
+
         return TMTSubject(
             training_trials=training_trials,
             testing_trials=testing_trials,
-            target_radius=self._extract_first_valid_numeric(subject_data, 'radius'),
+            target_radius=target_radius,
             canvas_size=self._extract_first_valid_numeric(subject_data, 'canvas_size'),
             session_data=session_data
         )

@@ -162,6 +162,7 @@ def save_results(
         "calculate_crosses": config_file.CALCULATE_CROSSES,
         "interpolate_trajectory": config_file.INTERPOLATE_TRAJECTORY,
         "target_freq_hz": config_file.INTERPOLATION_TARGET_FREQ_HZ if config_file.INTERPOLATE_TRAJECTORY else None,
+        "target_radius_multiplier": config_file.TARGET_RADIUS_MULTIPLIER,
         "random_state": random_state,
         "test_size": test_size,
         "metadata_path": config_file.METADATA_CSV,
