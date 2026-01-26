@@ -55,7 +55,7 @@ CUT_CRITERIA = "MINIMUM_TARGETS"
 CALCULATE_CROSSES = False
 INTERPOLATE_TRAJECTORY = False
 INTERPOLATION_TARGET_FREQ_HZ = 60
-TARGET_RADIUS_MULTIPLIER = 1.1  # Multiplier for target radius (1.0 = no change, 1.1 = 10% increase)
+TARGET_RADIUS_MULTIPLIER = 1.15  # Multiplier for target radius (1.0 = no change, 1.1 = 10% increase)
 
 # =============================================================================
 # ML Pipeline Configuration
