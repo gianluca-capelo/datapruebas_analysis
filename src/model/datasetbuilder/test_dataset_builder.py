@@ -26,7 +26,8 @@ class TestTrialTypeCoverageFilter:
             'rt': [100, 200, 150, 160, 250]
         })
 
-        result = builder._aggregate_tmt(test_df)
+        valid_df = builder._get_valid_tmt_trials(test_df)
+        result = builder._aggregate_tmt(valid_df)
 
         # S1 has both types -> included
         # S2 only has PART_A -> excluded
@@ -47,7 +48,8 @@ class TestTrialTypeCoverageFilter:
             'rt': [100, 110, 200, 210]
         })
 
-        result = builder._aggregate_tmt(test_df)
+        valid_df = builder._get_valid_tmt_trials(test_df)
+        result = builder._aggregate_tmt(valid_df)
 
         assert 'S1' in result['subject_id'].values
         assert len(result) == 1
@@ -66,7 +68,8 @@ class TestTrialTypeCoverageFilter:
             'rt': [100, 200, 300, 150, 250]
         })
 
-        result = builder._aggregate_tmt(test_df)
+        valid_df = builder._get_valid_tmt_trials(test_df)
+        result = builder._aggregate_tmt(valid_df)
 
         # S1 has valid PART_A and PART_B -> included
         # S2 has valid PART_A but no valid PART_B -> excluded
@@ -85,7 +88,7 @@ class TestTrialTypeCoverageFilter:
         })
 
         with pytest.raises(AssertionError, match="No subjects remain"):
-            builder._aggregate_tmt(test_df)
+            builder._get_valid_tmt_trials(test_df)
 
     def test_exclusion_report_returns_correct_structure(self):
         """Verify get_exclusion_report returns expected dictionary structure."""
