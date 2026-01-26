@@ -11,7 +11,7 @@ from src.mapper.neuropruebas.neuropruebas_mapper import NeuropruebasTMTMapper
 
 
 def log_and_run_tmt_analysis(dataset_path, output_path, correct_targets_minimum, consecutive_points, cut_criteria,
-                             calculate_crosses, target_radius_multiplier, mapper: TMTMapper):
+                             calculate_crosses, crosses_time_threshold, target_radius_multiplier, mapper: TMTMapper):
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
@@ -24,7 +24,8 @@ def log_and_run_tmt_analysis(dataset_path, output_path, correct_targets_minimum,
     )
 
     hand_analysis.run(correct_targets_minimum, consecutive_points, cut_criteria=cut_criteria,
-                      calculate_crosses=calculate_crosses, target_radius_multiplier=target_radius_multiplier)
+                      calculate_crosses=calculate_crosses, crosses_time_threshold=crosses_time_threshold,
+                      target_radius_multiplier=target_radius_multiplier)
 
     return hand_analysis
 
@@ -54,6 +55,7 @@ def run_analysis_with_configuration_parameters(output_path, experiment_origin):
         consecutive_points=points,
         cut_criteria=cut_criteria,
         calculate_crosses=config.CALCULATE_CROSSES,
+        crosses_time_threshold=config.CROSSES_TIME_THRESHOLD,
         target_radius_multiplier=config.TARGET_RADIUS_MULTIPLIER,
         mapper=DatapruebasTMTMapper() if experiment_origin == 'datapruebas' else NeuropruebasTMTMapper()
     )
