@@ -48,15 +48,14 @@ LOGGING_CONFIG = {
 
 FIGURES_DIR = os.path.join(BASE_DIR, "figures")
 
-# Screen parameters
-RADIUS_HEIGHT = 0.0275
-
 # TMT parameters
 CONSECUTIVE_POINTS = 5
 CORRECT_THRESHOLD = 10
 CUT_CRITERIA = "MINIMUM_TARGETS"
-CALCULATE_CROSSES = False
-INTERPOLATE_TRAJECTORY = False
+CALCULATE_CROSSES = True
+INTERPOLATE_TRAJECTORY = True
+INTERPOLATION_TARGET_FREQ_HZ = 60
+TARGET_RADIUS_MULTIPLIER = 1.15  # Multiplier for target radius (1.0 = no change, 1.1 = 10% increase)
 
 # =============================================================================
 # ML Pipeline Configuration

@@ -237,10 +237,14 @@ class NeuropruebasTMTMapper(TMTMapper):
         if len(testing_trials) == 0:
             raise ValueError("Subject must have at least one testing trial")
 
+        # Extract raw target radius (multiplier will be applied in neurotask)
+        raw_radius = self._extract_first_valid_numeric(subject_data, 'radius')
+        target_radius = raw_radius
+
         return TMTSubject(
             training_trials=training_trials,
             testing_trials=testing_trials,
-            target_radius=self._extract_first_valid_numeric(subject_data, 'radius'),
+            target_radius=target_radius,
             canvas_size=self._extract_first_valid_numeric(subject_data, 'canvas_size'),
             session_data=session_data
         )
@@ -295,7 +299,8 @@ class NeuropruebasTMTMapper(TMTMapper):
                 stimuli=stimuli,
                 trial_id=f"NEUROPRUEBAS_{i}",
                 trial_order_of_appearance=i,
-                interpolate=config.INTERPOLATE_TRAJECTORY
+                interpolate=config.INTERPOLATE_TRAJECTORY,
+                target_freq_hz=config.INTERPOLATION_TARGET_FREQ_HZ
             )
             trials.append(trial)
 
@@ -401,7 +406,8 @@ class NeuropruebasTMTMapper(TMTMapper):
 
     def map_to_trial(self, first_click: CursorInfo, positions: List[Tuple[float, float]],
                      times: List[int], stimuli: List[NeuropruebasTarget], trial_id: str,
-                     trial_order_of_appearance: int, interpolate: bool = True) -> TMTTrial:
+                     trial_order_of_appearance: int, interpolate: bool = True,
+                     target_freq_hz: int = 60) -> TMTTrial:
 
         targets = [
             TMTTarget(
@@ -428,7 +434,7 @@ class NeuropruebasTMTMapper(TMTMapper):
             raw_y = [p[1] for p in positions]
 
             # 2. Interpolar
-            interp_x, interp_y, interp_t = interpolate_trajectory(raw_x, raw_y, times)
+            interp_x, interp_y, interp_t = interpolate_trajectory(raw_x, raw_y, times, target_freq_hz)
             
             # 3. Reconstruir cursor_trail
             cursor_trail = [

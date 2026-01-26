@@ -87,6 +87,7 @@ Results (results/{regression|classification}/<timestamp>/)
 - `CORRECT_THRESHOLD=10`: Pixels for correct target selection
 - `CUT_CRITERIA="MINIMUM_TARGETS"`: Incomplete trial handling
 - `INTERPOLATE_TRAJECTORY=False`: Trajectory interpolation toggle
+- `TARGET_RADIUS_MULTIPLIER=1.15`: Target radius scaling factor (1.0=no change, 1.15=15% increase)
 
 **ML Settings:**
 - Seeds: `MODEL_OUTER_SEED=47`, `MODEL_INNER_SEED=66`

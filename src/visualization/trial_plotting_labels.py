@@ -1,6 +1,42 @@
 import matplotlib.pyplot as plt
 from neurotask.tmt.model.tmt_model import TMTTrial
 
+from src.visualization.trial_plotting_helpers import (
+    extract_cursor_coordinates,
+    draw_trial_trajectory,
+    draw_trial_targets,
+    mark_start_end_points,
+    configure_trial_axes
+)
+
+
+def plot_trial_simple(ax, trial: TMTTrial, target_radius: float, title: str = "", show_line: bool = True,
+                      radius_multiplier: float = None):
+    """
+    Plot a trial trajectory on an existing axis without segmentation.
+
+    Args:
+        ax: Matplotlib axis to plot on.
+        trial: TMTTrial object.
+        target_radius: Radius of targets in pixels.
+        title: Title for the subplot.
+        show_line: Whether to draw the connecting line between scatter points.
+        radius_multiplier: If set, draws an orange shadow showing the effective radius.
+    """
+    if trial is None:
+        ax.set_title(f"{title}\nNo encontrado")
+        ax.axis('off')
+        return
+
+    x, y = extract_cursor_coordinates(trial)
+
+    draw_trial_trajectory(ax, x, y, show_line=show_line)
+    mark_start_end_points(ax, x, y)
+    draw_trial_targets(ax, trial, target_radius, radius_multiplier=radius_multiplier)
+    configure_trial_axes(ax, hide_ticks=True)
+
+    ax.set_title(f"{title}\n({len(x)} puntos)", fontsize=9)
+
 
 def is_pixel_coordinates(trial: TMTTrial) -> bool:
     """Detect if the trial data is in pixel coordinates.
@@ -53,11 +89,7 @@ def plot_with_labels_scatter(trial: TMTTrial, target_radius: float, labels: list
     ax.scatter(cursor_x, cursor_y, c=point_colors, s=20, zorder=4)
 
     # Dibujar los targets
-    for target in trial.stimuli:
-        tx, ty = target.position.x, target.position.y
-        circle = plt.Circle((tx, ty), radius_px, color='steelblue', alpha=0.3, zorder=5)
-        ax.add_patch(circle)
-        ax.text(tx, ty, target.content, color='black', fontsize=8, ha='center', va='center', zorder=6)
+    draw_trial_targets(ax, trial, radius_px)
 
     # Marcar el primer clic
     if plot_start and trial.start:
@@ -77,17 +109,7 @@ def plot_with_labels_scatter(trial: TMTTrial, target_radius: float, labels: list
         ax.legend(handles=handles, title=labels_title)
 
     # Estética - ajustar límites basado en los datos
-    ax.set_xlabel('X screen coordinate (pixels)')
-    ax.set_ylabel('Y screen coordinate (pixels)')
     ax.set_title(title)
-    
-    # Calcular límites basados en los datos reales
-    margin = 50
-    x_min, x_max = min(cursor_x) - margin, max(cursor_x) + margin
-    y_min, y_max = min(cursor_y) - margin, max(cursor_y) + margin
-    
-    ax.set_xlim(x_min, x_max)
-    ax.set_ylim(y_max, y_min)  # invertir eje Y (como en pantalla)
-    ax.set_aspect('equal', adjustable='box')
+    configure_trial_axes(ax, x=list(cursor_x), y=list(cursor_y), show_labels=True)
 
     return fig
