@@ -12,7 +12,6 @@ def extract_cursor_coordinates(
 
     Args:
         trial: TMTTrial object.
-        from_start: If True, use get_cursor_trail_from_start(), otherwise use cursor_trail.
 
     Returns:
         Tuple of (x_coords, y_coords) lists.
