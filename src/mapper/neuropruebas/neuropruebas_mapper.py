@@ -237,9 +237,9 @@ class NeuropruebasTMTMapper(TMTMapper):
         if len(testing_trials) == 0:
             raise ValueError("Subject must have at least one testing trial")
 
-        # Extract and apply multiplier to target radius
+        # Extract raw target radius (multiplier will be applied in neurotask)
         raw_radius = self._extract_first_valid_numeric(subject_data, 'radius')
-        target_radius = raw_radius * config.TARGET_RADIUS_MULTIPLIER if raw_radius is not None else None
+        target_radius = raw_radius
 
         return TMTSubject(
             training_trials=training_trials,
