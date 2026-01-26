@@ -160,6 +160,7 @@ def save_results(
         "cut_criteria": config_file.CUT_CRITERIA,
         "consecutive_points": config_file.CONSECUTIVE_POINTS,
         "calculate_crosses": config_file.CALCULATE_CROSSES,
+        "crosses_time_threshold": config_file.CROSSES_TIME_THRESHOLD,
         "interpolate_trajectory": config_file.INTERPOLATE_TRAJECTORY,
         "target_freq_hz": config_file.INTERPOLATION_TARGET_FREQ_HZ if config_file.INTERPOLATE_TRAJECTORY else None,
         "target_radius_multiplier": config_file.TARGET_RADIUS_MULTIPLIER,
