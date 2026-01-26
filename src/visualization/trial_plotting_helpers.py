@@ -6,7 +6,6 @@ from neurotask.tmt.model.tmt_model import TMTTrial
 
 def extract_cursor_coordinates(
     trial: TMTTrial,
-    from_start: bool = False
 ) -> tuple[list[float], list[float]]:
     """
     Extract X/Y coordinates from cursor trail.
@@ -18,7 +17,7 @@ def extract_cursor_coordinates(
     Returns:
         Tuple of (x_coords, y_coords) lists.
     """
-    cursor_trail = trial.get_cursor_trail_from_start() if from_start else trial.cursor_trail
+    cursor_trail = trial.get_cursor_trail_from_start()
     x = [c.position.x for c in cursor_trail]
     y = [c.position.y for c in cursor_trail]
     return x, y
@@ -35,7 +34,10 @@ def draw_trial_targets(
     text_fontsize: int = 8,
     text_color: str = 'black',
     zorder_circle: int = 5,
-    zorder_text: int = 6
+    zorder_text: int = 6,
+    radius_multiplier: float = None,
+    multiplier_color: str = 'orange',
+    multiplier_alpha: float = 0.15
 ) -> None:
     """
     Draw target circles with content labels.
@@ -52,9 +54,26 @@ def draw_trial_targets(
         text_color: Color for target labels.
         zorder_circle: Z-order for circles.
         zorder_text: Z-order for text labels.
+        radius_multiplier: If set, draws an additional circle showing the effective radius.
+        multiplier_color: Color for the multiplier shadow circle.
+        multiplier_alpha: Alpha transparency for the multiplier shadow.
     """
     for target in trial.stimuli:
         tx, ty = target.position.x, target.position.y
+
+        # Draw multiplier shadow first (behind main circle)
+        if radius_multiplier is not None and radius_multiplier != 1.0:
+            effective_radius = target_radius * radius_multiplier
+            shadow_circle = plt.Circle(
+                (tx, ty),
+                effective_radius,
+                fill=True,
+                color=multiplier_color,
+                alpha=multiplier_alpha,
+                zorder=zorder_circle - 1
+            )
+            ax.add_patch(shadow_circle)
+
         circle = plt.Circle(
             (tx, ty),
             target_radius,
@@ -85,7 +104,8 @@ def draw_trial_trajectory(
     scatter: bool = True,
     scatter_size: int = 1,
     scatter_alpha: float = 0.3,
-    zorder: int = 4
+    zorder: int = 4,
+    show_line: bool = True
 ) -> None:
     """
     Draw cursor trajectory line with optional scatter points.
@@ -101,8 +121,10 @@ def draw_trial_trajectory(
         scatter_size: Size of scatter points.
         scatter_alpha: Alpha transparency of scatter points.
         zorder: Z-order for trajectory elements.
+        show_line: Whether to draw the connecting line between points.
     """
-    ax.plot(x, y, color=line_color, linestyle='-', linewidth=linewidth, alpha=line_alpha, zorder=zorder)
+    if show_line:
+        ax.plot(x, y, color=line_color, linestyle='-', linewidth=linewidth, alpha=line_alpha, zorder=zorder)
     if scatter:
         ax.scatter(x, y, s=scatter_size, c=line_color, alpha=scatter_alpha, zorder=zorder)
 

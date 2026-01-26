@@ -10,7 +10,8 @@ from src.visualization.trial_plotting_helpers import (
 )
 
 
-def plot_trial_simple(ax, trial: TMTTrial, target_radius: float, title: str = ""):
+def plot_trial_simple(ax, trial: TMTTrial, target_radius: float, title: str = "", show_line: bool = True,
+                      radius_multiplier: float = None):
     """
     Plot a trial trajectory on an existing axis without segmentation.
 
@@ -19,17 +20,19 @@ def plot_trial_simple(ax, trial: TMTTrial, target_radius: float, title: str = ""
         trial: TMTTrial object.
         target_radius: Radius of targets in pixels.
         title: Title for the subplot.
+        show_line: Whether to draw the connecting line between scatter points.
+        radius_multiplier: If set, draws an orange shadow showing the effective radius.
     """
     if trial is None:
         ax.set_title(f"{title}\nNo encontrado")
         ax.axis('off')
         return
 
-    x, y = extract_cursor_coordinates(trial, from_start=False)
+    x, y = extract_cursor_coordinates(trial)
 
-    draw_trial_trajectory(ax, x, y)
+    draw_trial_trajectory(ax, x, y, show_line=show_line)
     mark_start_end_points(ax, x, y)
-    draw_trial_targets(ax, trial, target_radius)
+    draw_trial_targets(ax, trial, target_radius, radius_multiplier=radius_multiplier)
     configure_trial_axes(ax, hide_ticks=True)
 
     ax.set_title(f"{title}\n({len(x)} puntos)", fontsize=9)
