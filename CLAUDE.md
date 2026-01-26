@@ -191,8 +191,39 @@ df, config = get_latest_gonogo_analysis()
 
 ## Dependencies
 
-Core (see `requirements.txt`):
-- `pandas==2.0.3`, `numpy==1.24.4`
-- `scikit-learn==1.7.1`, `xgboost==3.0.4`
-- `matplotlib==3.9.2`, `seaborn==0.13.2`, `shap==0.48.0`
-- `neurotask==0.0.0` - Not in pip (installed separately)
+**Python 3.10+ required** (uses union type syntax `|` in type hints)
+
+### Core packages (see `requirements.txt`)
+- Data: `pandas==2.0.3`, `numpy==1.24.4`
+- ML: `scikit-learn==1.7.1`, `xgboost==3.0.4`, `shap==0.48.0`
+- Visualization: `matplotlib==3.9.2`, `seaborn==0.13.2`
+- Validation: `pydantic==2.11.7`, `attrs==25.3.0`
+- Utilities: `tqdm==4.66.1`
+
+### Local package: neurotask
+Not available in PyPI. Install from public repository:
+```bash
+pip install git+https://github.com/NeuroLIAA/neurotask.git
+```
+
+### Development dependencies (see `requirements-dev.txt`)
+- `pytest==8.3.2` - Testing
+- `jupyterlab==4.4.9`, `ipython==8.37.0` - Notebooks
+
+### Full setup for new collaborators
+
+```bash
+# Create and activate virtual environment
+python3.10 -m venv venv
+source venv/bin/activate  # Linux/macOS
+# venv\Scripts\activate   # Windows
+
+# Install production dependencies
+pip install -r requirements.txt
+
+# Install neurotask (required for TMT analysis)
+pip install git+https://github.com/NeuroLIAA/neurotask.git
+
+# For development (includes pytest, jupyter)
+pip install -r requirements-dev.txt
+```

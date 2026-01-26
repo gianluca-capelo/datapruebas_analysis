@@ -1,0 +1,9 @@
+# Development and testing dependencies
+-r requirements.txt
+
+# Testing
+pytest==8.3.2
+
+# Jupyter notebooks
+jupyterlab==4.4.9
+ipython==8.37.0
