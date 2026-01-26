@@ -191,7 +191,7 @@ df, config = get_latest_gonogo_analysis()
 
 ## Dependencies
 
-**Python 3.10+ required** (uses union type syntax `|` in type hints)
+**Python 3.10.x required** (uses union type syntax `|` in type hints)
 
 ### Core packages (see `requirements.txt`)
 - Data: `pandas==2.0.3`, `numpy==1.24.4`

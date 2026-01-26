@@ -4,7 +4,7 @@ Neuropsychological data analysis pipeline for processing cognitive task data fro
 
 ## Requirements
 
-- Python 3.10+
+- Python 3.10.x
 - [neurotask](https://github.com/NeuroLIAA/neurotask) (local installation required)
 
 ## Installation

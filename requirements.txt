@@ -1,4 +1,4 @@
-# Python 3.10+ required
+# Python 3.10.x required
 
 # Core data processing
 pandas==2.0.3
