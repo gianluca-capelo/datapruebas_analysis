@@ -21,4 +21,5 @@ attrs==25.3.0
 tqdm==4.66.1
 
 # Local packages (not available in PyPI, install separately)
-# neurotask: pip install git+https://github.com/NeuroLIAA/neurotask.git
+# neurotask: git clone https://github.com/NeuroLIAA/neurotask.git ~/Research/neurotask
+#            cd ~/Research/neurotask/neurotask && pip install -e .

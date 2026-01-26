@@ -201,10 +201,15 @@ df, config = get_latest_gonogo_analysis()
 - Utilities: `tqdm==4.66.1`
 
 ### Local package: neurotask
-Not available in PyPI. Install from public repository:
+Not available in PyPI. Requires local installation from the [neurotask repository](https://github.com/NeuroLIAA/neurotask):
 ```bash
-pip install git+https://github.com/NeuroLIAA/neurotask.git
+# Clone the repository (if not already cloned)
+git clone https://github.com/NeuroLIAA/neurotask.git ~/Research/neurotask
+
+# Install in editable mode from the neurotask subdirectory
+cd ~/Research/neurotask/neurotask && pip install -e .
 ```
+**Note:** The package is inside a `neurotask/` subdirectory within the repo.
 
 ### Development dependencies (see `requirements-dev.txt`)
 - `pytest==8.3.2` - Testing
@@ -222,7 +227,10 @@ source venv/bin/activate  # Linux/macOS
 pip install -r requirements.txt
 
 # Install neurotask (required for TMT analysis)
-pip install git+https://github.com/NeuroLIAA/neurotask.git
+# First, clone the repository if you don't have it:
+git clone https://github.com/NeuroLIAA/neurotask.git ~/Research/neurotask
+# Then install in editable mode:
+cd ~/Research/neurotask/neurotask && pip install -e .
 
 # For development (includes pytest, jupyter)
 pip install -r requirements-dev.txt
