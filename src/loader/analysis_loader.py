@@ -214,7 +214,7 @@ def run_analysis():
     start_time = time.perf_counter()
     load_analysis(RANDOM_STATE, 1, False, old_split_config_date)
     elapsed = time.perf_counter() - start_time
-    logging.info(f"Total analysis time: {elapsed:.2f}s ({elapsed/60:.1f} min)")
+    print(f"Total analysis time: {elapsed:.2f}s ({elapsed/60:.1f} min)")
 
 
 if __name__ == "__main__":
