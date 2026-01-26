@@ -1,6 +1,7 @@
 import json
 import logging
 import subprocess
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -210,7 +211,10 @@ def run_analysis():
     args = parser.parse_args()
     old_split_config_date = args.old_split_config_date
 
+    start_time = time.perf_counter()
     load_analysis(RANDOM_STATE, 1, False, old_split_config_date)
+    elapsed = time.perf_counter() - start_time
+    logging.info(f"Total analysis time: {elapsed:.2f}s ({elapsed/60:.1f} min)")
 
 
 if __name__ == "__main__":
