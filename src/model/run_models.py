@@ -91,9 +91,26 @@ def get_models(random_state: int, is_classification):
         return REGRESSION_MODELS(random_state)
 
 
+def validate_dataset(X, y, is_classification, dataset_name):
+    """Validate dataset before running ML pipeline."""
+    if X.shape[0] != y.shape[0]:
+        raise ValueError(f"Dataset '{dataset_name}': X has {X.shape[0]} samples but y has {y.shape[0]}")
+    if X.shape[0] < 2:
+        raise ValueError(f"Dataset '{dataset_name}': needs at least 2 samples for LOOCV, got {X.shape[0]}")
+    if np.isnan(y).any():
+        raise ValueError(f"Dataset '{dataset_name}': target y contains NaN values")
+    if is_classification:
+        unique_classes = np.unique(y[~np.isnan(y)])
+        if len(unique_classes) < 2:
+            raise ValueError(f"Dataset '{dataset_name}': classification requires at least 2 classes, got {len(unique_classes)}")
+    logging.info(f"Dataset '{dataset_name}': {X.shape[0]} samples, {X.shape[1]} features")
+
+
 def perform(dataset_name: str, global_seed: int,
             inner_cv_seed: int, feature_selection: bool, tune_hyperparameters: bool, is_classification):
     X, y, feature_names, target_name = retrieve_dataset(dataset_name)
+
+    validate_dataset(X, y, is_classification, dataset_name)
 
     param_grids = get_parameter_grid(is_classification)
 
