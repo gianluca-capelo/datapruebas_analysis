@@ -85,7 +85,9 @@ MAX_SELECTED_FEATURES = 20
 
 # Datasets configuration
 DATASETS = [
-    'tmt_ssrt',  # TMT features → SSRT target
+    'tmt_ssrt',    # TMT features → SSRT target (Stop Signal Task)
+    'tmt_k',       # TMT features → K capacity target (Change Detection Task)
+    'tmt_dprime',  # TMT features → d' sensitivity target (Go/No-Go Task)
 ]
 
 # Target columns
