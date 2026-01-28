@@ -18,10 +18,11 @@ from src.loader.gonogo_analysis_loader import get_latest_gonogo_analysis
 class DatasetBuilder:
     """
     Builds X, y datasets from cognitive task data.
-    
+
     Supported datasets:
         - 'tmt_ssrt':   TMT features → SSRT target (Stop Signal Task)
         - 'tmt_k':      TMT features → K capacity target (Change Detection Task)
+        - 'tmt_k6':     TMT features → K_6 target with QC filter (0 <= K_6 <= 4.5)
         - 'tmt_dprime': TMT features → d' sensitivity target (Go/No-Go Task)
     """
     
@@ -57,10 +58,12 @@ class DatasetBuilder:
             return self._build_tmt_ssrt()
         elif name == 'tmt_k':
             return self._build_tmt_k()
+        elif name == 'tmt_k_v2':
+            return self._build_tmt_k6()
         elif name == 'tmt_dprime':
             return self._build_tmt_dprime()
         else:
-            available = ['tmt_ssrt', 'tmt_k', 'tmt_dprime']
+            available = ['tmt_ssrt', 'tmt_k', 'tmt_k6', 'tmt_dprime']
             raise ValueError(
                 f"Unknown dataset: {name}. Available: {available}"
             )
@@ -85,37 +88,56 @@ class DatasetBuilder:
         tmt_valid = self._load_valid_tmt_trials()
         return self._aggregate_tmt(tmt_valid)
 
-    def _build_generic_dataset(self, loader_func, target_col: str, loader_name: str) -> Tuple[np.ndarray, np.ndarray, list, str]:
+    def _build_generic_dataset(self, loader_func, target_col: str, loader_name: str,
+                                min_val: float = None, max_val: float = None) -> Tuple[np.ndarray, np.ndarray, list, str]:
         """
         Generic helper to build TMT features vs Any Target.
+
+        Args:
+            loader_func: Function to load target task data
+            target_col: Name of target column
+            loader_name: Name of target task (for logging)
+            min_val: Optional minimum value filter for target
+            max_val: Optional maximum value filter for target
         """
         tmt_agg = self._load_tmt_aggregated()
-        
+
         # Load Target Task data
         task_result = loader_func()
         if task_result is None:
             raise RuntimeError(f"No {loader_name} analysis found. Run {loader_name} analysis first.")
-        
+
         # Asumimos que el loader devuelve (df, metadata) o similar, tomamos el df [0]
         # y filtramos subject_id y el target
         task_df = task_result[0]
-        
+
         if target_col not in task_df.columns:
              raise ValueError(f"Target column '{target_col}' not found in {loader_name} data. Available: {list(task_df.columns)}")
 
         task_subset = task_df[['subject_id', target_col]]
-        
+
         # Merge on subject_id
         merged = pd.merge(tmt_agg, task_subset, on='subject_id', how='inner')
-        
+
         if len(merged) == 0:
             raise RuntimeError(f"No matching subjects between TMT and {loader_name} data.")
-        
+
+        # Apply target value filter if specified
+        if min_val is not None or max_val is not None:
+            n_before = len(merged)
+            if min_val is not None:
+                merged = merged[merged[target_col] >= min_val]
+            if max_val is not None:
+                merged = merged[merged[target_col] <= max_val]
+            n_filtered = n_before - len(merged)
+            if n_filtered > 0:
+                logger.info(f"Filtered {n_filtered} subjects with {target_col} outside [{min_val}, {max_val}]")
+
         # Extract X and y
         feature_cols = [c for c in merged.columns if c not in ['subject_id', target_col]]
         X = merged[feature_cols].values
         y = merged[target_col].values
-        
+
         return X, y, feature_cols, target_col
     
     
@@ -139,6 +161,21 @@ class DatasetBuilder:
             loader_func=get_latest_cdt_analysis,
             target_col=target_name,
             loader_name="CDT"
+        )
+
+    def _build_tmt_k6(self) -> Tuple[np.ndarray, np.ndarray, list, str]:
+        """
+        Build dataset with TMT features and K_6 as target, filtering extreme values.
+
+        Filters: 0 <= K_6 <= 4.5 (based on literature typical range for Cowan's K)
+        """
+        target_name = 'K_6'
+        return self._build_generic_dataset(
+            loader_func=get_latest_cdt_analysis,
+            target_col=target_name,
+            loader_name="CDT",
+            min_val=0,
+            max_val=4.5
         )
 
     def _build_tmt_dprime(self) -> Tuple[np.ndarray, np.ndarray, list, str]:
