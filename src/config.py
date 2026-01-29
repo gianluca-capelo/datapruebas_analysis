@@ -88,6 +88,7 @@ DATASETS = [
     'tmt_ssrt',    # TMT features → SSRT target (Stop Signal Task)
     'tmt_k',       # TMT features → K capacity target (Change Detection Task)
     'tmt_dprime',  # TMT features → d' sensitivity target (Go/No-Go Task)
+    'tmt_k_v2'
 ]
 
 # Target columns
