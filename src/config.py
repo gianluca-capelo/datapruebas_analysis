@@ -72,6 +72,7 @@ from sklearn.svm import SVR, SVC
 RESULTS_DIR = os.path.join(BASE_DIR, "results")
 CLASSIFICATION_RESULTS_DIR = os.path.join(RESULTS_DIR, "classification")
 REGRESSION_RESULTS_DIR = os.path.join(RESULTS_DIR, "regression")
+REGRESSION_ANALYSIS_FOLDER = os.path.join(BASE_DIR, "analysis", "results")
 
 # Seeds and CV settings
 MODEL_OUTER_SEED = 47
