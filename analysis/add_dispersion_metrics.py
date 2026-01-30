@@ -1,0 +1,71 @@
+"""
+Add dispersion metrics (SD and IQR) to regression results.
+"""
+import argparse
+import ast
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+from scipy.stats import iqr
+
+from analysis.concat_regression_results import concat_regression_results
+from src.config import REGRESSION_ANALYSIS_FOLDER
+
+
+def parse_array_string(array_str: str) -> np.ndarray:
+    """Parse string representation of list to numpy array."""
+    return np.array(ast.literal_eval(array_str))
+
+
+def compute_dispersion_metrics(y_pred_str: str) -> pd.Series:
+    """Compute SD and IQR from y_pred string."""
+    arr = parse_array_string(y_pred_str)
+    return pd.Series({
+        "sd_y_pred": np.std(arr, ddof=1),
+        "iqr_y_pred": iqr(arr),
+    })
+
+
+def add_dispersion_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Add sd_y_pred and iqr_y_pred columns to DataFrame."""
+    df = df.copy()
+    return df.join(df["y_pred"].apply(compute_dispersion_metrics))
+
+
+def add_metrics_to_results(timestamp: str) -> pd.DataFrame:
+    """Load combined results and add dispersion metrics."""
+    df = concat_regression_results(timestamp)
+    return add_dispersion_columns(df)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Add dispersion metrics (SD and IQR) to regression results"
+    )
+    parser.add_argument(
+        "--timestamp",
+        required=True,
+        help="Timestamp folder (e.g., 2026-01-26_1901)",
+    )
+    parser.add_argument(
+        "--output",
+        help="Output path (default: analysis/results/{timestamp}/combined_summary_with_dispersion.csv)",
+    )
+    args = parser.parse_args()
+
+    df = add_metrics_to_results(args.timestamp)
+
+    if args.output:
+        output_path = Path(args.output)
+    else:
+        output_dir = Path(REGRESSION_ANALYSIS_FOLDER) / args.timestamp
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = output_dir / "combined_summary_with_dispersion.csv"
+
+    df.to_csv(output_path, index=False)
+    print(f"Saved results with dispersion metrics to {output_path}")
+
+
+if __name__ == "__main__":
+    main()
