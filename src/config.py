@@ -72,6 +72,7 @@ from sklearn.svm import SVR, SVC
 RESULTS_DIR = os.path.join(BASE_DIR, "results")
 CLASSIFICATION_RESULTS_DIR = os.path.join(RESULTS_DIR, "classification")
 REGRESSION_RESULTS_DIR = os.path.join(RESULTS_DIR, "regression")
+REGRESSION_ANALYSIS_FOLDER = os.path.join(BASE_DIR, "analysis", "results")
 
 # Seeds and CV settings
 MODEL_OUTER_SEED = 47
@@ -85,7 +86,10 @@ MAX_SELECTED_FEATURES = 20
 
 # Datasets configuration
 DATASETS = [
-    'tmt_ssrt',  # TMT features → SSRT target
+    'tmt_ssrt',    # TMT features → SSRT target (Stop Signal Task)
+    'tmt_k',       # TMT features → K capacity target (Change Detection Task)
+    'tmt_dprime',  # TMT features → d' sensitivity target (Go/No-Go Task)
+    'tmt_k_v2'
 ]
 
 # Target columns
