@@ -224,7 +224,7 @@ class DatasetBuilder:
         """
         Build dataset with TMT features and age as target.
 
-        Raises ValueError if subjects have missing or invalid age (outside 18-100 range).
+        Filters subjects with missing or invalid age (outside 18-100 range).
         """
         # Load valid TMT trials (before aggregation)
         tmt_valid = self._load_valid_tmt_trials()
@@ -242,23 +242,18 @@ class DatasetBuilder:
             how='inner'
         )
 
-        # Validate all subjects have age
+        # Filter subjects with missing age
         missing_age = merged['age'].isna().sum()
         if missing_age > 0:
-            subjects_without_age = merged[merged['age'].isna()]['subject_id'].tolist()
-            raise ValueError(
-                f"{missing_age} subjects are missing age data: {subjects_without_age[:5]}"
-                f"{'...' if missing_age > 5 else ''}"
-            )
+            logger.warning(f"Filtering {missing_age} subjects with missing age data")
+            merged = merged[merged['age'].notna()]
 
-        # Validate age values are in reasonable range (18-100)
+        # Filter subjects with invalid age (outside 18-100 range)
         invalid_age_mask = (merged['age'] < 18) | (merged['age'] > 100)
         if invalid_age_mask.any():
-            invalid_subjects = merged[invalid_age_mask][['subject_id', 'age']].to_dict('records')
-            raise ValueError(
-                f"{invalid_age_mask.sum()} subjects have invalid age (outside [18, 100]): "
-                f"{invalid_subjects[:5]}{'...' if len(invalid_subjects) > 5 else ''}"
-            )
+            n_invalid = invalid_age_mask.sum()
+            logger.warning(f"Filtering {n_invalid} subjects with invalid age (outside [18, 100])")
+            merged = merged[~invalid_age_mask]
 
         target_col = 'age'
         feature_cols = [c for c in merged.columns if c not in ['subject_id', target_col]]
