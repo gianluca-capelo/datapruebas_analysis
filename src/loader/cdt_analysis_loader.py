@@ -221,6 +221,13 @@ def get_latest_cdt_analysis() -> tuple[pd.DataFrame, dict] | None:
     # Compute K_mean as average of K_4 and K_6
     if 'K_4' not in df.columns or 'K_6' not in df.columns:
         raise ValueError("CDT analysis missing K_4 or K_6 columns required to compute K_mean")
+
+    # Validate no NaN values in K_4 or K_6
+    k4_nan = df['K_4'].isna().sum()
+    k6_nan = df['K_6'].isna().sum()
+    if k4_nan > 0 or k6_nan > 0:
+        raise ValueError(f"CDT analysis has NaN values: K_4={k4_nan}, K_6={k6_nan}")
+
     df['K_mean'] = (df['K_4'] + df['K_6']) / 2
 
     config_dict = {}

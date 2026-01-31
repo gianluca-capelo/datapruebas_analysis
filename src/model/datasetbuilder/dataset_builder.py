@@ -26,6 +26,7 @@ class DatasetBuilder:
         - 'tmt_k_mean': TMT features → K_mean target (average of K_4 and K_6)
         - 'tmt_k6_v2':  TMT features → K_6 target with QC filter (0 <= K_6 <= 4.5)
         - 'tmt_dprime': TMT features → d' sensitivity target (Go/No-Go Task)
+        - 'tmt_age':    TMT features → age target (subject age prediction)
     """
     
     # Columns to exclude from features (metadata/identifiers)
@@ -68,8 +69,10 @@ class DatasetBuilder:
             return self._build_tmt_k_mean()
         elif name == 'tmt_dprime':
             return self._build_tmt_dprime()
+        elif name == 'tmt_age':
+            return self._build_tmt_age()
         else:
-            available = ['tmt_ssrt', 'tmt_k6', 'tmt_k4', 'tmt_k_mean', 'tmt_k6_v2', 'tmt_dprime']
+            available = ['tmt_ssrt', 'tmt_k6', 'tmt_k4', 'tmt_k_mean', 'tmt_k6_v2', 'tmt_dprime', 'tmt_age']
             raise ValueError(
                 f"Unknown dataset: {name}. Available: {available}"
             )
@@ -216,7 +219,49 @@ class DatasetBuilder:
             target_col=target_name,
             loader_name="Go/No-Go"
         )
-    
+
+    def _build_tmt_age(self) -> Tuple[np.ndarray, np.ndarray, list, str]:
+        """
+        Build dataset with TMT features and age as target.
+
+        Filters subjects with missing or invalid age (outside 18-100 range).
+        """
+        # Load valid TMT trials (before aggregation)
+        tmt_valid = self._load_valid_tmt_trials()
+
+        # Extract age per subject (before aggregation loses it)
+        age_per_subject = tmt_valid.groupby('subject_id')['age'].first()
+
+        # Aggregate TMT features
+        tmt_agg = self._aggregate_tmt(tmt_valid)
+
+        # Merge age back
+        merged = tmt_agg.merge(
+            age_per_subject.reset_index(),
+            on='subject_id',
+            how='inner'
+        )
+
+        # Filter subjects with missing age
+        missing_age = merged['age'].isna().sum()
+        if missing_age > 0:
+            logger.warning(f"Filtering {missing_age} subjects with missing age data")
+            merged = merged[merged['age'].notna()]
+
+        # Filter subjects with invalid age (outside 18-100 range)
+        invalid_age_mask = (merged['age'] < 18) | (merged['age'] > 100)
+        if invalid_age_mask.any():
+            n_invalid = invalid_age_mask.sum()
+            logger.warning(f"Filtering {n_invalid} subjects with invalid age (outside [18, 100])")
+            merged = merged[~invalid_age_mask]
+
+        target_col = 'age'
+        feature_cols = [c for c in merged.columns if c not in ['subject_id', target_col]]
+        X = merged[feature_cols].values
+        y = merged[target_col].values
+
+        return X, y, feature_cols, target_col
+
     def _get_valid_tmt_trials(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Filter TMT data to valid trials with proper coverage.
