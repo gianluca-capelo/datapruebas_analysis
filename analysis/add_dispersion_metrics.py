@@ -18,19 +18,19 @@ def parse_array_string(array_str: str) -> np.ndarray:
     return np.array(ast.literal_eval(array_str))
 
 
-def compute_dispersion_metrics(y_pred_str: str) -> pd.Series:
-    """Compute SD and IQR from y_pred string."""
-    arr = parse_array_string(y_pred_str)
+def compute_dispersion_metrics(y_true_str: str) -> pd.Series:
+    """Compute SD and IQR from y_true string."""
+    arr = parse_array_string(y_true_str)
     return pd.Series({
-        "sd_y_pred": np.std(arr, ddof=1),
-        "iqr_y_pred": iqr(arr),
+        "sd_y_true": np.std(arr, ddof=1),
+        "iqr_y_true": iqr(arr),
     })
 
 
 def add_dispersion_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """Add sd_y_pred and iqr_y_pred columns to DataFrame."""
+    """Add sd_y_true and iqr_y_true columns to DataFrame."""
     df = df.copy()
-    return df.join(df["y_pred"].apply(compute_dispersion_metrics))
+    return df.join(df["y_true"].apply(compute_dispersion_metrics))
 
 
 def add_metrics_to_results(timestamp: str) -> pd.DataFrame:
