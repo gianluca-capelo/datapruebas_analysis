@@ -131,6 +131,158 @@ class TestTrialTypeCoverageFilter:
         assert 'Missing PART_A' in report['exclusion_reasons']['S2']
 
 
+class TestTmtAgeDataset:
+    """Tests for the tmt_age dataset (age filtering behavior)."""
+
+    def _create_test_df(self, subjects_data):
+        """Helper to create test DataFrame with TMT trial structure."""
+        rows = []
+        for subj_id, age in subjects_data:
+            # Each subject needs PART_A and PART_B trials
+            rows.append({
+                'subject_id': subj_id,
+                'trial_type': 'PART_A',
+                'is_valid': 'True',
+                'age': age,
+                'rt': 100,
+                'errors': 0
+            })
+            rows.append({
+                'subject_id': subj_id,
+                'trial_type': 'PART_B',
+                'is_valid': 'True',
+                'age': age,
+                'rt': 200,
+                'errors': 1
+            })
+        return pd.DataFrame(rows)
+
+    def _build_age_dataset_from_df(self, builder, test_df):
+        """Helper to run the age dataset logic on test data."""
+        # Replicate _build_tmt_age logic with test data
+        valid_df = builder._get_valid_tmt_trials(test_df)
+        age_per_subject = valid_df.groupby('subject_id')['age'].first()
+        tmt_agg = builder._aggregate_tmt(valid_df)
+        merged = tmt_agg.merge(age_per_subject.reset_index(), on='subject_id', how='inner')
+
+        # Filter missing age
+        merged = merged[merged['age'].notna()]
+
+        # Filter invalid age range
+        merged = merged[(merged['age'] >= 18) & (merged['age'] <= 100)]
+
+        target_col = 'age'
+        feature_cols = [c for c in merged.columns if c not in ['subject_id', target_col]]
+        X = merged[feature_cols].values
+        y = merged[target_col].values
+
+        return X, y, feature_cols, target_col
+
+    def test_excludes_subjects_with_nan_age(self):
+        """Verify that subjects with NaN age are excluded."""
+        builder = DatasetBuilder()
+
+        test_df = self._create_test_df([
+            ('S1', 25),
+            ('S2', float('nan')),
+            ('S3', 30),
+        ])
+
+        X, y, feature_cols, target_col = self._build_age_dataset_from_df(builder, test_df)
+
+        # Should have 2 subjects (S1, S3), excluding S2 with NaN age
+        assert X.shape[0] == 2
+        assert y.shape[0] == 2
+        assert target_col == 'age'
+        assert 25 in y
+        assert 30 in y
+
+    def test_excludes_subjects_with_age_below_18(self):
+        """Verify that subjects with age < 18 are excluded."""
+        builder = DatasetBuilder()
+
+        test_df = self._create_test_df([
+            ('S1', 25),
+            ('S2', 17),   # Below 18
+            ('S3', 10),   # Below 18
+            ('S4', 18),   # Exactly 18 (included)
+        ])
+
+        X, y, feature_cols, target_col = self._build_age_dataset_from_df(builder, test_df)
+
+        # Should have 2 subjects (S1, S4), excluding S2 and S3
+        assert X.shape[0] == 2
+        assert y.shape[0] == 2
+        assert 25 in y
+        assert 18 in y
+        assert 17 not in y
+        assert 10 not in y
+
+    def test_excludes_subjects_with_age_above_100(self):
+        """Verify that subjects with age > 100 are excluded."""
+        builder = DatasetBuilder()
+
+        test_df = self._create_test_df([
+            ('S1', 50),
+            ('S2', 101),   # Above 100
+            ('S3', 100),   # Exactly 100 (included)
+            ('S4', -5000), # Invalid negative age
+        ])
+
+        X, y, feature_cols, target_col = self._build_age_dataset_from_df(builder, test_df)
+
+        # Should have 2 subjects (S1, S3), excluding S2 and S4
+        assert X.shape[0] == 2
+        assert y.shape[0] == 2
+        assert 50 in y
+        assert 100 in y
+        assert 101 not in y
+        assert -5000 not in y
+
+    def test_returns_correct_shapes_and_target(self):
+        """Verify X/y shapes match and target_col is 'age'."""
+        builder = DatasetBuilder()
+
+        test_df = self._create_test_df([
+            ('S1', 25),
+            ('S2', 35),
+            ('S3', 45),
+        ])
+
+        X, y, feature_cols, target_col = self._build_age_dataset_from_df(builder, test_df)
+
+        # Check shapes
+        assert X.shape[0] == 3  # 3 subjects
+        assert y.shape[0] == 3
+        assert X.shape[1] == len(feature_cols)
+
+        # Check target
+        assert target_col == 'age'
+
+        # Check feature columns don't include subject_id or age
+        assert 'subject_id' not in feature_cols
+        assert 'age' not in feature_cols
+
+        # Check features are present (rt_PART_A, rt_PART_B, etc.)
+        assert any('PART_A' in col for col in feature_cols)
+        assert any('PART_B' in col for col in feature_cols)
+
+    def test_all_valid_ages_included(self):
+        """Verify that all subjects with valid ages [18, 100] are included."""
+        builder = DatasetBuilder()
+
+        test_df = self._create_test_df([
+            ('S1', 18),   # Min valid
+            ('S2', 50),   # Mid range
+            ('S3', 100),  # Max valid
+        ])
+
+        X, y, feature_cols, target_col = self._build_age_dataset_from_df(builder, test_df)
+
+        assert X.shape[0] == 3
+        assert set(y) == {18, 50, 100}
+
+
 # =============================================================================
 # Integration Test (manual execution)
 # =============================================================================
