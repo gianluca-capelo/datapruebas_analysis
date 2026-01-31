@@ -21,7 +21,8 @@ class DatasetBuilder:
 
     Supported datasets:
         - 'tmt_ssrt':   TMT features → SSRT target (Stop Signal Task)
-        - 'tmt_k':      TMT features → K capacity target (Change Detection Task)
+        - 'tmt_k':      TMT features → K_6 capacity target (Change Detection Task)
+        - 'tmt_k4':     TMT features → K_4 capacity target (Change Detection Task, set size 4)
         - 'tmt_k6':     TMT features → K_6 target with QC filter (0 <= K_6 <= 4.5)
         - 'tmt_dprime': TMT features → d' sensitivity target (Go/No-Go Task)
     """
@@ -60,10 +61,12 @@ class DatasetBuilder:
             return self._build_tmt_k()
         elif name == 'tmt_k_v2':
             return self._build_tmt_k6()
+        elif name == 'tmt_k4':
+            return self._build_tmt_k4()
         elif name == 'tmt_dprime':
             return self._build_tmt_dprime()
         else:
-            available = ['tmt_ssrt', 'tmt_k', 'tmt_k6', 'tmt_dprime']
+            available = ['tmt_ssrt', 'tmt_k', 'tmt_k4', 'tmt_k6', 'tmt_dprime']
             raise ValueError(
                 f"Unknown dataset: {name}. Available: {available}"
             )
@@ -157,6 +160,17 @@ class DatasetBuilder:
         Build dataset with TMT features and K (CDT Capacity) as target.
         """
         target_name = 'K_6'
+        return self._build_generic_dataset(
+            loader_func=get_latest_cdt_analysis,
+            target_col=target_name,
+            loader_name="CDT"
+        )
+
+    def _build_tmt_k4(self) -> Tuple[np.ndarray, np.ndarray, list, str]:
+        """
+        Build dataset with TMT features and K_4 (CDT Capacity for set size 4) as target.
+        """
+        target_name = 'K_4'
         return self._build_generic_dataset(
             loader_func=get_latest_cdt_analysis,
             target_col=target_name,
