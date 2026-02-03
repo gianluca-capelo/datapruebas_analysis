@@ -192,8 +192,7 @@ def perform_cross_validation_for_model(param_grid, model, outer_cv, X, y, featur
             )
             scoring = 'roc_auc' if is_classification else 'neg_mean_absolute_error'  # neg_mean_absolute_error is for MAE
 
-            grid = GridSearchCV(pipeline, refit=True, param_grid=param_grid, cv=inner_cv, scoring=scoring, n_jobs=-1,
-                                verbose=1)
+            grid = GridSearchCV(pipeline, refit=True, param_grid=param_grid, cv=inner_cv, scoring=scoring, n_jobs=-1)
 
             grid.fit(X_train, y_train)
             best_model = grid.best_estimator_
