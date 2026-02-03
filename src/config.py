@@ -86,12 +86,12 @@ MAX_SELECTED_FEATURES = 20
 
 # Datasets configuration
 DATASETS = [
-    'tmt_ssrt',    # TMT features → SSRT target (Stop Signal Task)
-    'tmt_k6',      # TMT features → K_6 capacity target (Change Detection Task)
+    # 'tmt_ssrt',    # TMT features → SSRT target (Stop Signal Task)
+    # 'tmt_k6',      # TMT features → K_6 capacity target (Change Detection Task)
     'tmt_k4',      # TMT features → K_4 capacity target (Change Detection Task, set size 4)
     'tmt_k_mean',  # TMT features → K_mean target (average of K_4 and K_6)
-    'tmt_dprime',  # TMT features → d' sensitivity target (Go/No-Go Task)
-    'tmt_k6_v2',   # TMT features → K_6 target with QC filter (0 <= K_6 <= 4.5)
+    # 'tmt_dprime',  # TMT features → d' sensitivity target (Go/No-Go Task)
+    # 'tmt_k6_v2',   # TMT features → K_6 target with QC filter (0 <= K_6 <= 4.5)
     'tmt_age'      # TMT features → age target (subject age prediction)
 ]
 
