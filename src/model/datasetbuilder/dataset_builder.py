@@ -42,6 +42,13 @@ class DatasetBuilder:
         'experiment_origin', 'device', 'hand', 'device_config',
         'alcohol_drugs', 'treatment', 'pad_usage', 'final_comment',
         'speed_threshold', 'px2mm',
+        # Acceleration columns (excluded from ML features)
+        'mean_acceleration', 'std_acceleration', 'peak_acceleration',
+        'mean_abs_acceleration', 'std_abs_acceleration', 'peak_abs_acceleration',
+        'mean_negative_acceleration', 'std_negative_acceleration', 'peak_negative_acceleration',
+        'non_cut_mean_acceleration', 'non_cut_std_acceleration', 'non_cut_peak_acceleration',
+        'non_cut_mean_abs_acceleration', 'non_cut_std_abs_acceleration', 'non_cut_peak_abs_acceleration',
+        'non_cut_mean_negative_acceleration', 'non_cut_std_negative_acceleration', 'non_cut_peak_negative_acceleration',
     }
         
     def get_dataset(self, name: str) -> Tuple[np.ndarray, np.ndarray, list, str]:

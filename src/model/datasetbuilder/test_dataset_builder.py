@@ -283,6 +283,54 @@ class TestTmtAgeDataset:
         assert set(y) == {18, 50, 100}
 
 
+class TestAccelerationExclusion:
+    """Tests for excluding acceleration columns from ML features."""
+
+    def test_acceleration_columns_excluded_from_aggregation(self):
+        """Verify that acceleration columns are not included as features after aggregation."""
+        builder = DatasetBuilder()
+
+        test_df = pd.DataFrame({
+            'subject_id': ['S1', 'S1', 'S2', 'S2'],
+            'trial_type': ['PART_A', 'PART_B', 'PART_A', 'PART_B'],
+            'is_valid': ['True', 'True', 'True', 'True'],
+            'rt': [100, 200, 150, 250],
+            'mean_acceleration': [1.0, 2.0, 1.5, 2.5],
+            'std_acceleration': [0.1, 0.2, 0.15, 0.25],
+            'non_cut_mean_acceleration': [0.9, 1.9, 1.4, 2.4],
+            'peak_abs_acceleration': [5.0, 6.0, 5.5, 6.5],
+        })
+
+        valid_df = builder._get_valid_tmt_trials(test_df)
+        result = builder._aggregate_tmt(valid_df)
+
+        # No column should contain 'acceleration'
+        accel_cols = [c for c in result.columns if 'acceleration' in c]
+        assert accel_cols == [], f"Acceleration columns should be excluded, found: {accel_cols}"
+
+    def test_non_acceleration_columns_preserved(self):
+        """Verify that regular numeric columns are still included after aggregation."""
+        builder = DatasetBuilder()
+
+        test_df = pd.DataFrame({
+            'subject_id': ['S1', 'S1', 'S2', 'S2'],
+            'trial_type': ['PART_A', 'PART_B', 'PART_A', 'PART_B'],
+            'is_valid': ['True', 'True', 'True', 'True'],
+            'rt': [100, 200, 150, 250],
+            'errors': [0, 1, 0, 2],
+            'mean_acceleration': [1.0, 2.0, 1.5, 2.5],
+        })
+
+        valid_df = builder._get_valid_tmt_trials(test_df)
+        result = builder._aggregate_tmt(valid_df)
+
+        # rt and errors should be present as features
+        assert 'rt_PART_A' in result.columns
+        assert 'rt_PART_B' in result.columns
+        assert 'errors_PART_A' in result.columns
+        assert 'errors_PART_B' in result.columns
+
+
 # =============================================================================
 # Integration Test (manual execution)
 # =============================================================================
