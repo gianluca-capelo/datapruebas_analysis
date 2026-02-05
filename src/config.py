@@ -64,7 +64,7 @@ TARGET_RADIUS_MULTIPLIER = 1.15  # Multiplier for target radius (1.0 = no change
 
 import xgboost as xgb
 from sklearn.dummy import DummyRegressor
-from sklearn.ensemble import RandomForestClassifier  # , RandomForestRegressor
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor  # , RandomForestRegressor
 from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet, LogisticRegression
 from sklearn.svm import SVR, SVC
 
@@ -166,7 +166,7 @@ def REGRESSION_MODELS(random_state):
         xgb.XGBRegressor(random_state=random_state, n_jobs=-1),
         ElasticNet(random_state=random_state),
         SVR(),
-        # RandomForestRegressor(random_state=random_state, n_jobs=-1),
+        RandomForestRegressor(random_state=random_state, n_jobs=-1),
     ]
 
 
