@@ -39,7 +39,7 @@ def _validate_no_duplicates(df: pd.DataFrame) -> None:
     raise ValueError("\n".join(error_lines))
 
 
-def consolidate_results(timestamps: list[str], output: str | None = None) -> Path:
+def consolidate_results(timestamps: list[str], output: str | None = None) -> pd.DataFrame:
     """Load, concatenate, and validate regression results from multiple timestamps.
 
     Args:
@@ -47,7 +47,7 @@ def consolidate_results(timestamps: list[str], output: str | None = None) -> Pat
         output: Optional output path. If None, uses default consolidated path.
 
     Returns:
-        Path to the saved CSV file.
+        Combined DataFrame with dispersion metrics and p-values.
 
     Raises:
         ValueError: If duplicate (target, dataset, model) combinations are found across timestamps.
@@ -69,7 +69,7 @@ def consolidate_results(timestamps: list[str], output: str | None = None) -> Pat
     combined.to_csv(output_path, index=False)
     print(f"Saved consolidated results ({len(combined)} rows) to {output_path}")
 
-    return output_path
+    return combined
 
 
 def main():

@@ -1,5 +1,5 @@
 """
-Add dispersion metrics (SD and IQR) to regression results.
+Add dispersion metrics (SD, IQR) and permutation test p-values to regression results.
 """
 import argparse
 import ast
@@ -12,6 +12,7 @@ from scipy.stats import iqr
 from analysis.concat_regression_results import concat_regression_results
 from analysis.utils import get_latest_regression_timestamp
 from src.config import REGRESSION_ANALYSIS_FOLDER
+from src.model.permutation_tests import permutation_test
 
 
 def parse_array_string(array_str: str) -> np.ndarray:
@@ -28,10 +29,26 @@ def compute_dispersion_metrics(y_true_str: str) -> pd.Series:
     })
 
 
+def compute_p_value_mae(y_true_str: str, y_pred_str: str) -> float:
+    """Compute permutation test p-value using MAE metric."""
+    y_true = parse_array_string(y_true_str)
+    y_pred = parse_array_string(y_pred_str)
+    _, p_value = permutation_test(
+        y_true, y_pred, n_permutations=1000, seed=42, metric="mae"
+    )
+    return p_value
+
+
 def add_dispersion_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """Add sd_y_true and iqr_y_true columns to DataFrame."""
+    """Add sd_y_true, iqr_y_true, and p_value_mae columns to DataFrame."""
     df = df.copy()
-    return df.join(df["y_true"].apply(compute_dispersion_metrics))
+    dispersion = df["y_true"].apply(compute_dispersion_metrics)
+    df = df.join(dispersion)
+    df["p_value_mae"] = df.apply(
+        lambda row: compute_p_value_mae(row["y_true"], row["y_pred"]),
+        axis=1,
+    )
+    return df
 
 
 def add_metrics_to_results(timestamp: str) -> pd.DataFrame:
