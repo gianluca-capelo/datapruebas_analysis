@@ -331,6 +331,148 @@ class TestAccelerationExclusion:
         assert 'errors_PART_B' in result.columns
 
 
+class TestGoNoGoDatasets:
+    """Tests for Go/No-Go target datasets (accuracy, FA, eficiencia, c)."""
+
+    def _create_mock_tmt_agg(self):
+        """Helper: retorna un DataFrame simulado de TMT agregado."""
+        return pd.DataFrame({
+            'subject_id': ['S1', 'S2', 'S3'],
+            'rt_PART_A': [100, 150, 120],
+            'rt_PART_B': [200, 250, 220],
+            'errors_PART_A': [0, 1, 0],
+            'errors_PART_B': [1, 2, 1],
+        })
+
+    def _create_mock_gonogo_df(self):
+        """Helper: retorna un DataFrame simulado de Go/No-Go analysis."""
+        return pd.DataFrame({
+            'subject_id': ['S1', 'S2', 'S3'],
+            'accuracy': [0.85, 0.90, 0.75],
+            'FA': [0.10, 0.05, 0.15],
+            'eficiencia': [0.20, 0.30, 0.10],
+            'c': [-0.5, 0.2, -0.1],
+            'sensibilidad': [1.5, 2.0, 1.0],
+        })
+
+    def _build_with_mocks(self, dataset_name):
+        """Helper: build a dataset with mocked TMT and Go/No-Go data."""
+        from unittest.mock import patch
+        builder = DatasetBuilder()
+        mock_tmt = self._create_mock_tmt_agg()
+        mock_gonogo = self._create_mock_gonogo_df()
+        with patch.object(builder, '_load_tmt_aggregated', return_value=mock_tmt), \
+             patch('src.model.datasetbuilder.dataset_builder.get_latest_gonogo_analysis',
+                   return_value=(mock_gonogo, {})):
+            return builder.get_dataset(dataset_name)
+
+    # --- tmt_accuracy ---
+
+    def test_tmt_accuracy_builds_successfully(self):
+        X, y, feature_names, target_name = self._build_with_mocks('tmt_accuracy')
+        assert X.shape[0] == 3
+        assert y.shape[0] == 3
+        assert target_name == 'accuracy'
+
+    def test_tmt_accuracy_correct_target_values(self):
+        X, y, feature_names, target_name = self._build_with_mocks('tmt_accuracy')
+        assert list(y) == [0.85, 0.90, 0.75]
+
+    def test_tmt_accuracy_features_exclude_target_and_id(self):
+        X, y, feature_names, target_name = self._build_with_mocks('tmt_accuracy')
+        assert 'subject_id' not in feature_names
+        assert 'accuracy' not in feature_names
+
+    def test_tmt_accuracy_get_dataset_dispatches_correctly(self):
+        from unittest.mock import patch, MagicMock
+        builder = DatasetBuilder()
+        with patch.object(builder, '_build_tmt_accuracy', return_value=(None, None, None, None)) as mock_build:
+            builder.get_dataset('tmt_accuracy')
+            mock_build.assert_called_once()
+
+    # --- tmt_fa ---
+
+    def test_tmt_fa_builds_successfully(self):
+        X, y, feature_names, target_name = self._build_with_mocks('tmt_fa')
+        assert X.shape[0] == 3
+        assert y.shape[0] == 3
+        assert target_name == 'FA'
+
+    def test_tmt_fa_correct_target_values(self):
+        X, y, feature_names, target_name = self._build_with_mocks('tmt_fa')
+        assert list(y) == [0.10, 0.05, 0.15]
+
+    def test_tmt_fa_features_exclude_target_and_id(self):
+        X, y, feature_names, target_name = self._build_with_mocks('tmt_fa')
+        assert 'subject_id' not in feature_names
+        assert 'FA' not in feature_names
+
+    def test_tmt_fa_get_dataset_dispatches_correctly(self):
+        from unittest.mock import patch
+        builder = DatasetBuilder()
+        with patch.object(builder, '_build_tmt_fa', return_value=(None, None, None, None)) as mock_build:
+            builder.get_dataset('tmt_fa')
+            mock_build.assert_called_once()
+
+    # --- tmt_eficiencia ---
+
+    def test_tmt_eficiencia_builds_successfully(self):
+        X, y, feature_names, target_name = self._build_with_mocks('tmt_eficiencia')
+        assert X.shape[0] == 3
+        assert y.shape[0] == 3
+        assert target_name == 'eficiencia'
+
+    def test_tmt_eficiencia_correct_target_values(self):
+        X, y, feature_names, target_name = self._build_with_mocks('tmt_eficiencia')
+        assert list(y) == [0.20, 0.30, 0.10]
+
+    def test_tmt_eficiencia_features_exclude_target_and_id(self):
+        X, y, feature_names, target_name = self._build_with_mocks('tmt_eficiencia')
+        assert 'subject_id' not in feature_names
+        assert 'eficiencia' not in feature_names
+
+    def test_tmt_eficiencia_get_dataset_dispatches_correctly(self):
+        from unittest.mock import patch
+        builder = DatasetBuilder()
+        with patch.object(builder, '_build_tmt_eficiencia', return_value=(None, None, None, None)) as mock_build:
+            builder.get_dataset('tmt_eficiencia')
+            mock_build.assert_called_once()
+
+    # --- tmt_c ---
+
+    def test_tmt_c_builds_successfully(self):
+        X, y, feature_names, target_name = self._build_with_mocks('tmt_c')
+        assert X.shape[0] == 3
+        assert y.shape[0] == 3
+        assert target_name == 'c'
+
+    def test_tmt_c_correct_target_values(self):
+        X, y, feature_names, target_name = self._build_with_mocks('tmt_c')
+        assert list(y) == [-0.5, 0.2, -0.1]
+
+    def test_tmt_c_features_exclude_target_and_id(self):
+        X, y, feature_names, target_name = self._build_with_mocks('tmt_c')
+        assert 'subject_id' not in feature_names
+        assert 'c' not in feature_names
+
+    def test_tmt_c_get_dataset_dispatches_correctly(self):
+        from unittest.mock import patch
+        builder = DatasetBuilder()
+        with patch.object(builder, '_build_tmt_c', return_value=(None, None, None, None)) as mock_build:
+            builder.get_dataset('tmt_c')
+            mock_build.assert_called_once()
+
+    # --- Error handling ---
+
+    def test_unknown_dataset_raises_with_updated_list(self):
+        builder = DatasetBuilder()
+        with pytest.raises(ValueError, match="Unknown dataset") as exc_info:
+            builder.get_dataset('nonexistent')
+        error_msg = str(exc_info.value)
+        for name in ['tmt_accuracy', 'tmt_fa', 'tmt_eficiencia', 'tmt_c']:
+            assert name in error_msg, f"'{name}' should be listed in error message"
+
+
 # =============================================================================
 # Integration Test (manual execution)
 # =============================================================================

@@ -26,6 +26,10 @@ class DatasetBuilder:
         - 'tmt_k_mean': TMT features → K_mean target (average of K_4 and K_6)
         - 'tmt_k6_v2':  TMT features → K_6 target with QC filter (0 <= K_6 <= 4.5)
         - 'tmt_dprime': TMT features → d' sensitivity target (Go/No-Go Task)
+        - 'tmt_accuracy':  TMT features → accuracy target (Go/No-Go Task)
+        - 'tmt_fa':        TMT features → false alarm rate target (Go/No-Go Task)
+        - 'tmt_eficiencia':TMT features → efficiency target (Go/No-Go Task)
+        - 'tmt_c':         TMT features → response criterion target (Go/No-Go Task)
         - 'tmt_age':    TMT features → age target (subject age prediction)
     """
     
@@ -76,10 +80,19 @@ class DatasetBuilder:
             return self._build_tmt_k_mean()
         elif name == 'tmt_dprime':
             return self._build_tmt_dprime()
+        elif name == 'tmt_accuracy':
+            return self._build_tmt_accuracy()
+        elif name == 'tmt_fa':
+            return self._build_tmt_fa()
+        elif name == 'tmt_eficiencia':
+            return self._build_tmt_eficiencia()
+        elif name == 'tmt_c':
+            return self._build_tmt_c()
         elif name == 'tmt_age':
             return self._build_tmt_age()
         else:
-            available = ['tmt_ssrt', 'tmt_k6', 'tmt_k4', 'tmt_k_mean', 'tmt_k6_v2', 'tmt_dprime', 'tmt_age']
+            available = ['tmt_ssrt', 'tmt_k6', 'tmt_k4', 'tmt_k_mean', 'tmt_k6_v2', 'tmt_dprime',
+                         'tmt_accuracy', 'tmt_fa', 'tmt_eficiencia', 'tmt_c', 'tmt_age']
             raise ValueError(
                 f"Unknown dataset: {name}. Available: {available}"
             )
@@ -221,6 +234,50 @@ class DatasetBuilder:
         Build dataset with TMT features and d' (Go/No-Go Sensitivity) as target.
         """
         target_name = 'sensibilidad'
+        return self._build_generic_dataset(
+            loader_func=get_latest_gonogo_analysis,
+            target_col=target_name,
+            loader_name="Go/No-Go"
+        )
+
+    def _build_tmt_accuracy(self) -> Tuple[np.ndarray, np.ndarray, list, str]:
+        """
+        Build dataset with TMT features and accuracy (Go/No-Go) as target.
+        """
+        target_name = 'accuracy'
+        return self._build_generic_dataset(
+            loader_func=get_latest_gonogo_analysis,
+            target_col=target_name,
+            loader_name="Go/No-Go"
+        )
+
+    def _build_tmt_fa(self) -> Tuple[np.ndarray, np.ndarray, list, str]:
+        """
+        Build dataset with TMT features and false alarm rate (Go/No-Go) as target.
+        """
+        target_name = 'FA'
+        return self._build_generic_dataset(
+            loader_func=get_latest_gonogo_analysis,
+            target_col=target_name,
+            loader_name="Go/No-Go"
+        )
+
+    def _build_tmt_eficiencia(self) -> Tuple[np.ndarray, np.ndarray, list, str]:
+        """
+        Build dataset with TMT features and efficiency (Go/No-Go) as target.
+        """
+        target_name = 'eficiencia'
+        return self._build_generic_dataset(
+            loader_func=get_latest_gonogo_analysis,
+            target_col=target_name,
+            loader_name="Go/No-Go"
+        )
+
+    def _build_tmt_c(self) -> Tuple[np.ndarray, np.ndarray, list, str]:
+        """
+        Build dataset with TMT features and response criterion (Go/No-Go) as target.
+        """
+        target_name = 'c'
         return self._build_generic_dataset(
             loader_func=get_latest_gonogo_analysis,
             target_col=target_name,
