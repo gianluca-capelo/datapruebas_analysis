@@ -9,8 +9,8 @@ import numpy as np
 import pandas as pd
 from scipy.stats import iqr
 
-from analysis.concat_regression_results import concat_regression_results
-from analysis.utils import get_latest_regression_timestamp
+from analysis.scripts.concat_regression_results import concat_regression_results
+from analysis.scripts.utils import get_latest_regression_timestamp
 from src.config import REGRESSION_ANALYSIS_FOLDER
 from src.model.permutation_tests import permutation_test
 

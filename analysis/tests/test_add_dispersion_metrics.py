@@ -69,7 +69,7 @@ class TestPValueColumn:
         assert consolidated_df["iqr_y_true"].notna().all()
 
     def test_row_count_matches_sum_of_timestamps(self, consolidated_df):
-        from analysis.concat_regression_results import concat_regression_results
+        from analysis.scripts.concat_regression_results import concat_regression_results
 
         expected_rows = sum(
             len(concat_regression_results(ts)) for ts in TIMESTAMPS
