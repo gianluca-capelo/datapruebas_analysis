@@ -92,6 +92,10 @@ DATASETS = [
     'tmt_k_mean',  # TMT features → K_mean target (average of K_4 and K_6)
     'tmt_dprime',  # TMT features → d' sensitivity target (Go/No-Go Task)
     'tmt_k6_v2',   # TMT features → K_6 target with QC filter (0 <= K_6 <= 4.5)
+    'tmt_accuracy',    # TMT features → accuracy target (Go/No-Go Task)
+    'tmt_fa',          # TMT features → false alarm rate target (Go/No-Go Task)
+    'tmt_eficiencia',  # TMT features → efficiency target (Go/No-Go Task)
+    'tmt_c',           # TMT features → response criterion target (Go/No-Go Task)
     'tmt_age'      # TMT features → age target (subject age prediction)
 ]
 
