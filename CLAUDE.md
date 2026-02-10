@@ -39,6 +39,20 @@ python -m src.model.run_models --task classification
 
 ```bash
 python -m pytest src/model/datasetbuilder/test_dataset_builder.py
+python -m pytest analysis/tests/test_add_dispersion_metrics.py
+```
+
+### Post-ML Analysis Scripts
+
+```bash
+# Consolidate results from multiple timestamps (adds dispersion metrics + p-values)
+python -m analysis.scripts.consolidate_results <timestamp1> <timestamp2> ...
+
+# Add dispersion metrics to a single timestamp
+python -m analysis.scripts.add_dispersion_metrics --timestamp <timestamp>
+
+# Concatenate regression summaries for a timestamp
+python -m analysis.scripts.concat_regression_results --timestamp <timestamp>
 ```
 
 ### Visualization CLI Tools
@@ -67,6 +81,12 @@ DatasetBuilder (src/model/datasetbuilder/)
 ML Pipeline (src/model/run_models.py)
     ↓
 Results (results/{regression|classification}/<timestamp>/)
+    ↓
+Post-processing (analysis/scripts/)
+    ↓
+Consolidated Results (analysis/results/consolidated/)
+    ↓
+Notebooks (analysis/notebooks/)
 ```
 
 ### Key Modules
@@ -79,6 +99,8 @@ Results (results/{regression|classification}/<timestamp>/)
 | `src/mapper/` | Format converters: `datapruebas/` (JSON), `neuropruebas/` (CSV) |
 | `src/runner/` | Entry points: `run_all_analysis.py`, `run_hand_analysis.py` |
 | `src/visualization/` | Plotting utilities for trajectories, segmentation, analysis results |
+| `analysis/scripts/` | Post-ML result processing: concatenation, dispersion metrics, consolidation |
+| `analysis/notebooks/` | Jupyter notebooks: `ml_results/` (per-target ML analysis), `metrics/` (dispersion & error metrics) |
 
 ### Configuration (`src/config.py`)
 

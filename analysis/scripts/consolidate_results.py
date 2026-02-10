@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from analysis.add_dispersion_metrics import add_metrics_to_results
+from analysis.scripts.add_dispersion_metrics import add_metrics_to_results
 from src.config import REGRESSION_ANALYSIS_FOLDER
 
 

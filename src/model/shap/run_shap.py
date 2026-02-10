@@ -38,11 +38,11 @@ def _build_pipeline(model, is_classification, feature_selection, X_train_shape, 
 
 
 def parse_hparams(s):
-    d = ast.literal_eval(s)
+    import math
+    d = eval(s, {"__builtins__": {}}, {"None": None, "True": True, "False": False, "nan": math.nan})
     if not isinstance(d, dict):
         raise ValueError("Hyperparameters string is not a valid dictionary.")
-    else:
-        return d
+    return d
 
 
 def shap_after_nested_cv(
@@ -151,16 +151,32 @@ def load_folds_info(folds_csv_path, model_name_to_explain):
 from src.config import MODEL_OUTER_SEED
 
 
+def _explanations_to_dataframe(explanations: list) -> pd.DataFrame:
+    """Convert a list of shap.Explanation objects (one per LOO fold) to a DataFrame.
+
+    Returns a DataFrame with columns: fold, base_value, and one column per feature.
+    Features not selected in a fold appear as NaN.
+    """
+    rows = []
+    for fold_id, expl in enumerate(explanations):
+        vals = expl.values.flatten()
+        names = expl.feature_names
+        row = {"fold": fold_id, "base_value": float(np.atleast_1d(expl.base_values).flat[0])}
+        row.update(dict(zip(names, vals)))
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
 def run_shap(task: str, dataset_name: str, timestamp: str, model_name_to_explain: str):
     """
     Run SHAP analysis on a trained model.
-    
+
     Args:
         task: 'classification' or 'regression'
         dataset_name: Name of the dataset (e.g., 'tmt_ssrt')
         timestamp: Timestamp folder of the results
         model_name_to_explain: Name of the model to explain (e.g., 'Ridge')
-    
+
     Returns:
         tuple: (shap_explanations, target_name)
     """
@@ -174,13 +190,14 @@ def run_shap(task: str, dataset_name: str, timestamp: str, model_name_to_explain
 
     results_dir = CLASSIFICATION_RESULTS_DIR if is_classification else REGRESSION_RESULTS_DIR
 
-    folds_path = os.path.join(
+    dataset_dir = os.path.join(
         results_dir,
         timestamp,
         target_name,
         dataset_name,
-        "folds.csv"
     )
+
+    folds_path = os.path.join(dataset_dir, "folds.csv")
 
     shap_explanations = shap_after_nested_cv(
         dataset_name=dataset_name,
@@ -191,6 +208,10 @@ def run_shap(task: str, dataset_name: str, timestamp: str, model_name_to_explain
         folds_csv_path=folds_path,
     )
 
-    print(shap_explanations)
+    # Save raw SHAP values to CSV
+    shap_df = _explanations_to_dataframe(shap_explanations)
+    shap_csv_path = os.path.join(dataset_dir, f"shap_values_{model_name_to_explain}.csv")
+    shap_df.to_csv(shap_csv_path, index=False)
+    print(f"[SHAP] Raw values saved to: {shap_csv_path}")
 
     return shap_explanations, target_name
