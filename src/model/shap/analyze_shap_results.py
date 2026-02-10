@@ -118,7 +118,7 @@ def clean_target_col(target_col):
 
 
 def plot_shap_summary(df, is_classification, target_col, top_n=20, plot_freq=False, annotate_values=True,
-                      save_filename=None):
+                      save_filename=None, figures_dir=None):
     """
     Plot SHAP summary in horizontal format.
 
@@ -316,7 +316,7 @@ def plot_shap_summary(df, is_classification, target_col, top_n=20, plot_freq=Fal
 
     # Save or show
     if save_filename:
-        save_path = os.path.join(FIGURES_DIR, save_filename)
+        save_path = os.path.join(figures_dir or FIGURES_DIR, save_filename)
         fig.savefig(save_path, bbox_inches="tight", dpi=300)
         plt.close(fig)
         print(f"Figure saved to: {save_path}")
@@ -324,16 +324,17 @@ def plot_shap_summary(df, is_classification, target_col, top_n=20, plot_freq=Fal
         plt.show()
 
 
-def run_analysis(dataset_name, is_classification, model, timestamp, save_filename):
+def run_analysis(dataset_name, is_classification, model, timestamp, save_filename, figures_dir=None):
     """
     Run SHAP analysis and plot results.
-    
+
     Args:
         dataset_name: Name of the dataset (e.g., 'tmt_ssrt')
         is_classification: True for classification, False for regression
         model: Name of the model to explain
         timestamp: Timestamp folder of the results
         save_filename: Filename to save the plot
+        figures_dir: Directory to save the figure. If None, uses FIGURES_DIR.
     """
     shap_explanations, target_name = run_shap(
         dataset_name=dataset_name,
@@ -345,7 +346,8 @@ def run_analysis(dataset_name, is_classification, model, timestamp, save_filenam
                                    task="classification" if is_classification else "regression")
     print(shap_df.head(10))
     plot_shap_summary(shap_df, top_n=20,
-                      save_filename=save_filename, is_classification=is_classification, target_col=target_name)
+                      save_filename=save_filename, is_classification=is_classification, target_col=target_name,
+                      figures_dir=figures_dir)
 
 
 def main(is_classification, timestamp, dataset_name="tmt_ssrt"):

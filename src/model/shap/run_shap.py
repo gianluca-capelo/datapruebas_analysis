@@ -38,11 +38,11 @@ def _build_pipeline(model, is_classification, feature_selection, X_train_shape, 
 
 
 def parse_hparams(s):
-    d = ast.literal_eval(s)
+    import math
+    d = eval(s, {"__builtins__": {}}, {"None": None, "True": True, "False": False, "nan": math.nan})
     if not isinstance(d, dict):
         raise ValueError("Hyperparameters string is not a valid dictionary.")
-    else:
-        return d
+    return d
 
 
 def shap_after_nested_cv(
