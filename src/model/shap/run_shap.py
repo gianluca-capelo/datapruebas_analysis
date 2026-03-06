@@ -93,7 +93,7 @@ def shap_after_nested_cv(
         pipeline.fit(X_train, y_train)
 
         expl = compute_shap_for_pipeline(X_test, X_train, estimator_step_name, feature_names, feature_selection,
-                                         pipeline, is_classification)
+                                         pipeline, is_classification, seed=global_seed)
 
         explanations.append(expl)
 
@@ -111,7 +111,9 @@ def _callable_for_shap(estimator, is_classification):
 
 
 def compute_shap_for_pipeline(X_test, X_train, estimator_step_name, feature_names, feature_selection, pipeline,
-                              is_classification=True):
+                              is_classification=True, seed=None):
+    if seed is None:
+        raise ValueError("seed must be provided for reproducible SHAP results.")
     # SHAP computation
     preprocess = pipeline[:-1]
     estimator = pipeline.named_steps[estimator_step_name]
@@ -125,7 +127,7 @@ def compute_shap_for_pipeline(X_test, X_train, estimator_step_name, feature_name
         shap_feature_names = np.asarray(feature_names)
 
     f_callable = _callable_for_shap(estimator, is_classification)
-    explainer = shap.Explainer(f_callable, X_train_transformed, feature_names=shap_feature_names)
+    explainer = shap.Explainer(f_callable, X_train_transformed, feature_names=shap_feature_names, seed=seed)
 
     kind = f"{explainer.__module__}.{explainer.__class__.__name__}"
     link = getattr(explainer.link, "__class__", type(explainer.link)).__name__
