@@ -48,7 +48,7 @@ class DatasetBuilder:
         'speed_threshold', 'px2mm',
         # Sampling period / device artifact columns
         'max_sampling_period', 'mean_sampling_period',
-        'median_sampling_period', 'min_sampling_period',
+        'median_sampling_period', 'min_sampling_period', 'std_sampling_period',
         'non_cut_max_sampling_period', 'non_cut_mean_sampling_period',
         'non_cut_median_sampling_period', 'non_cut_min_sampling_period',
         'non_cut_std_sampling_period',
