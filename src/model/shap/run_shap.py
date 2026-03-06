@@ -93,7 +93,7 @@ def shap_after_nested_cv(
         pipeline.fit(X_train, y_train)
 
         expl = compute_shap_for_pipeline(X_test, X_train, estimator_step_name, feature_names, feature_selection,
-                                         pipeline, is_classification, seed=global_seed)
+                                         pipeline, seed=global_seed, is_classification=is_classification)
 
         explanations.append(expl)
 
@@ -111,7 +111,7 @@ def _callable_for_shap(estimator, is_classification):
 
 
 def compute_shap_for_pipeline(X_test, X_train, estimator_step_name, feature_names, feature_selection, pipeline,
-                              is_classification=True, seed=None):
+                              seed: int, is_classification=True):
     if seed is None:
         raise ValueError("seed must be provided for reproducible SHAP results.")
     # SHAP computation
