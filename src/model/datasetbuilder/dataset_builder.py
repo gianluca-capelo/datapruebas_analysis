@@ -46,6 +46,16 @@ class DatasetBuilder:
         'experiment_origin', 'device', 'hand', 'device_config',
         'alcohol_drugs', 'treatment', 'pad_usage', 'final_comment',
         'speed_threshold', 'px2mm',
+        # Sampling period / device artifact columns
+        'max_sampling_period', 'mean_sampling_period',
+        'median_sampling_period', 'min_sampling_period', 'std_sampling_period',
+        'non_cut_max_sampling_period', 'non_cut_mean_sampling_period',
+        'non_cut_median_sampling_period', 'non_cut_min_sampling_period',
+        'non_cut_std_sampling_period',
+        # Count/scale columns
+        'sample_count', 'non_cut_sample_count',
+        'scale_factor',
+        'valid_interval_count', 'non_cut_valid_interval_count',
         # Acceleration columns (excluded from ML features)
         'mean_acceleration', 'std_acceleration', 'peak_acceleration',
         'mean_abs_acceleration', 'std_abs_acceleration', 'peak_abs_acceleration',
