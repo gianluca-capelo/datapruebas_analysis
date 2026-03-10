@@ -15,10 +15,10 @@ from src.model.run_models import retrieve_dataset
 ANALYSIS_FIGURES_DIR = os.path.join(BASE_DIR, "analysis", "figures")
 
 COMBINATIONS = [
-    {"dataset": "tmt_age",        "model": "SVR",                   "task": "regression", "timestamp": "2026-02-03_2053"},
-    {"dataset": "tmt_k_mean",     "model": "XGBRegressor",          "task": "regression", "timestamp": "2026-02-03_2053"},
-    {"dataset": "tmt_accuracy",   "model": "SVR",                   "task": "regression", "timestamp": "2026-02-05_2206"},
-    {"dataset": "tmt_c",          "model": "Lasso",                 "task": "regression", "timestamp": "2026-02-07_0100"},
+    {"dataset": "tmt_age",        "model": "SVR",                   "task": "regression", "timestamp": "2026-03-07_1213"},
+    {"dataset": "tmt_k_mean",     "model": "XGBRegressor",          "task": "regression", "timestamp": "2026-03-06_2028"},
+    {"dataset": "tmt_accuracy",   "model": "SVR",                   "task": "regression", "timestamp": "2026-03-07_1213"},
+    {"dataset": "tmt_c",          "model": "Lasso",                 "task": "regression", "timestamp": "2026-03-07_1213"},
 ]
 
 
