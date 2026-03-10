@@ -16,14 +16,8 @@ ANALYSIS_FIGURES_DIR = os.path.join(BASE_DIR, "analysis", "figures")
 
 COMBINATIONS = [
     {"dataset": "tmt_age",        "model": "SVR",                   "task": "regression", "timestamp": "2026-02-03_2053"},
-    {"dataset": "tmt_dprime",     "model": "Ridge",                 "task": "regression", "timestamp": "2026-02-03_2053"},
     {"dataset": "tmt_k_mean",     "model": "XGBRegressor",          "task": "regression", "timestamp": "2026-02-03_2053"},
-    {"dataset": "tmt_k_mean",     "model": "RandomForestRegressor", "task": "regression", "timestamp": "2026-02-03_2053"},
-    {"dataset": "tmt_accuracy",   "model": "Ridge",                 "task": "regression", "timestamp": "2026-02-05_2206"},
-    {"dataset": "tmt_eficiencia", "model": "Ridge",                 "task": "regression", "timestamp": "2026-02-06_0905"},
-    {"dataset": "tmt_eficiencia", "model": "Lasso",                 "task": "regression", "timestamp": "2026-02-06_0905"},
-    {"dataset": "tmt_eficiencia", "model": "ElasticNet",            "task": "regression", "timestamp": "2026-02-06_0905"},
-    {"dataset": "tmt_c",          "model": "Ridge",                 "task": "regression", "timestamp": "2026-02-07_0100"},
+    {"dataset": "tmt_accuracy",   "model": "SVR",                   "task": "regression", "timestamp": "2026-02-05_2206"},
     {"dataset": "tmt_c",          "model": "Lasso",                 "task": "regression", "timestamp": "2026-02-07_0100"},
 ]
 
