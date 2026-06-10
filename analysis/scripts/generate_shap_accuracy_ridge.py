@@ -15,7 +15,7 @@ import os
 import matplotlib.pyplot as plt
 
 from analysis.scripts.generate_shap_figures import (
-    FEATURE_LABELS, _compute_shap,
+    FEATURE_LABELS, _compute_shap, _translate_parts,
     C_PURPLE, FIGURES_DIR, DPI, TOP_N,
     _FIG_W, _FIG_H, _TITLE_FS, _LABEL_FS, _TICK_FS, _ANNOT_FS, _YTICK_FS,
 )
@@ -33,6 +33,7 @@ def _draw_panel(ax, label, shap_df, color):
     """Render one SHAP importance panel (mirrors generate_shap_figures.main loop)."""
     df_plot = shap_df.sort_values("mean_abs_shap", ascending=True).tail(TOP_N)
     df_plot.index = df_plot.index.map(lambda x: FEATURE_LABELS.get(x, x))
+    df_plot.index = df_plot.index.map(_translate_parts)
 
     bars = ax.barh(df_plot.index, df_plot["mean_abs_shap"], color=color, alpha=0.75)
 

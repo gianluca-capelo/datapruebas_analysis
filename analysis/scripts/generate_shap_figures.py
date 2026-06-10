@@ -252,6 +252,11 @@ FEATURE_LABELS = {
 }
 
 
+def _translate_parts(label):
+    """Translate the 'Part A'/'Part B' suffix of a feature label to Spanish."""
+    return label.replace("Part A", "Parte A").replace("Part B", "Parte B")
+
+
 def _compute_shap(dataset, model, timestamp, task="regression"):
     """Compute SHAP values by re-fitting each model per LOO fold."""
     print(f"  [{dataset}/{model}] Computing SHAP (may take several minutes)...")
@@ -291,6 +296,8 @@ def main(lang: str = "en"):
         color = combo["color"]
         df_plot = shap_df.sort_values("mean_abs_shap", ascending=True).tail(TOP_N)
         df_plot.index = df_plot.index.map(lambda x: FEATURE_LABELS.get(x, x))
+        if lang == "es":
+            df_plot.index = df_plot.index.map(_translate_parts)
 
         bars = ax.barh(df_plot.index, df_plot["mean_abs_shap"], color=color, alpha=0.75)
 
