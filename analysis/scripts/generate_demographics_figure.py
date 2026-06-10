@@ -9,7 +9,8 @@ Panels:
     C. Education level     D. Nationality
 
 Usage:
-    python -m analysis.scripts.generate_demographics_figure
+    python -m analysis.scripts.generate_demographics_figure            # inglés
+    python -m analysis.scripts.generate_demographics_figure --lang es  # castellano
 """
 import os
 import re
@@ -85,6 +86,34 @@ EDU_LABELS = {
     "U": "University", "R": "Postgraduate",
 }
 GENDER_ORDER = ["Female", "Male", "Non-binary", "Gender fluid", "Other"]
+
+
+def _labels(lang):
+    """Return display labels for the requested language.
+
+    Only display strings are translated; the underlying data (canonical English
+    categories used for matching/ordering) is untouched.
+    """
+    es = lang == "es"
+    titles = {
+        "A": "A. Distribución de la edad" if es else "A. Age distribution",
+        "B": "B. Género"                  if es else "B. Gender",
+        "C": "C. Nivel educativo"         if es else "C. Education level",
+        "D": "D. Nacionalidad"            if es else "D. Nationality",
+    }
+    age_lbl   = "Edad (años)" if es else "Age (years)"
+    count_lbl = "Cantidad"    if es else "Count"
+    # canonical -> display maps (identity in English)
+    gender = {
+        "Female": "Femenino", "Male": "Masculino", "Non-binary": "No binario",
+        "Gender fluid": "Género fluido", "Other": "Otro",
+    } if es else {k: k for k in GENDER_ORDER}
+    edu = {
+        "P": "Primario", "S": "Secundario", "T": "Terciario",
+        "U": "Universitario", "R": "Posgrado",
+    } if es else dict(EDU_LABELS)
+    nat = {"Mexico": "México", "Peru": "Perú", "Spain": "España", "Other": "Otros"} if es else {}
+    return titles, age_lbl, count_lbl, gender, edu, nat
 
 
 def _latest_tmt_analysis_path():
@@ -227,8 +256,9 @@ def _build_metadata(df_tmt, df_sst, df_cdt, df_gonogo):
     return metadata
 
 
-def main():
+def main(lang="en"):
     os.makedirs(FIGURES_DIR, exist_ok=True)
+    titles, age_lbl, count_lbl, gender_map, edu_map, nat_map = _labels(lang)
 
     print("Loading data...")
     df_tmt, df_sst, df_cdt, df_gonogo = _load_data()
@@ -243,34 +273,42 @@ def main():
     # --- A. Age distribution ---
     ages = metadata["age"].dropna()
     ax_a.hist(ages, bins=20, color=C_DEMO, edgecolor="white", linewidth=0.4)
-    ax_a.set_xlabel("Age (years)")
-    ax_a.set_ylabel("Count")
-    ax_a.set_title(f"A. Age distribution ($N$={len(ages)})")
+    ax_a.set_xlabel(age_lbl)
+    ax_a.set_ylabel(count_lbl)
+    ax_a.set_title(f"{titles['A']} ($N$={len(ages)})")
 
     # --- B. Gender ---
     present_genders = [g for g in GENDER_ORDER if g in metadata["gender_desc"].values]
     gender_counts = metadata["gender_desc"].value_counts().reindex(present_genders)
-    ax_b.barh(gender_counts.index[::-1], gender_counts.values[::-1], color=C_DEMO)
-    ax_b.set_xlabel("Count")
-    ax_b.set_title(f"B. Gender ($N$={metadata['gender_desc'].notna().sum()})")
+    gender_labels = [gender_map.get(x, x) for x in gender_counts.index[::-1]]
+    ax_b.barh(gender_labels, gender_counts.values[::-1], color=C_DEMO)
+    ax_b.set_xlabel(count_lbl)
+    ax_b.set_title(f"{titles['B']} ($N$={metadata['gender_desc'].notna().sum()})")
 
     # --- C. Education level (ordered P->R) ---
     present_edu = [e for e in EDU_ORDER if e in metadata["education_level"].values]
     edu_counts  = metadata["education_level"].value_counts().reindex(present_edu)
-    edu_labels  = [EDU_LABELS[e] for e in edu_counts.index]
+    edu_labels  = [edu_map[e] for e in edu_counts.index]
     ax_c.barh(edu_labels[::-1], edu_counts.values[::-1], color=C_DEMO)
-    ax_c.set_xlabel("Count")
-    ax_c.set_title(f"C. Education level ($N$={metadata['education_level'].notna().sum()})")
+    ax_c.set_xlabel(count_lbl)
+    ax_c.set_title(f"{titles['C']} ($N$={metadata['education_level'].notna().sum()})")
 
     # --- D. Nationality ---
     nat_counts = metadata["nationality_clean"].value_counts()
-    ax_d.barh(nat_counts.index[::-1], nat_counts.values[::-1], color=C_DEMO)
-    ax_d.set_xlabel("Count")
-    ax_d.set_title(f"D. Nationality ($N$={metadata['nationality_clean'].notna().sum()})")
+    nat_labels = [nat_map.get(x, x) for x in nat_counts.index[::-1]]
+    ax_d.barh(nat_labels, nat_counts.values[::-1], color=C_DEMO)
+    ax_d.set_xlabel(count_lbl)
+    ax_d.set_title(f"{titles['D']} ($N$={metadata['nationality_clean'].notna().sum()})")
 
     fig.tight_layout()
-    save_fig(fig, "fig1_demographics.png")
+    suffix = "_es" if lang == "es" else ""
+    save_fig(fig, f"fig1_demographics{suffix}.png")
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    parser = argparse.ArgumentParser(description="Generate the demographics figure")
+    parser.add_argument("--lang", choices=["en", "es"], default="en",
+                        help="Idioma de títulos/ejes/categorías (default: en)")
+    args = parser.parse_args()
+    main(args.lang)
