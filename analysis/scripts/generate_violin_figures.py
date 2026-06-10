@@ -9,7 +9,8 @@ Panels (2x3 grid):
     D. Stop Signal Task      E. Go/No-Go — c coeff    F. Go/No-Go — Accuracy
 
 Usage:
-    python -m analysis.scripts.generate_violin_figures
+    python -m analysis.scripts.generate_violin_figures            # inglés
+    python -m analysis.scripts.generate_violin_figures --lang es  # castellano
 """
 import os
 import glob
@@ -163,8 +164,36 @@ def _prepare_data(df_tmt, df_cdt):
     return tmt_time, tmt_pct, cdt_long
 
 
-def main():
+def _labels(lang):
+    """Return (titles, ylabels, parts) for the requested language.
+
+    Only the A/B/E titles, the A/B/C/E y-labels and the A/B part labels differ
+    between languages; everything else stays in English.
+    """
+    es = lang == "es"
+    titles = {
+        "A": "A. Tiempo de completitud (cTMT)" if es else "A. TMT Completion Time",
+        "B": "B. Ensayos válidos (cTMT)"       if es else "B. TMT Completion Rate",
+        "C": "C. Change Detection Task",
+        "D": "D. Stop Signal Task",
+        "E": "E. Go/No-Go — coeficiente $c$"   if es else "E. Go/No-Go — $c$ coefficient",
+        "F": "F. Go/No-Go — Accuracy",
+    }
+    ylabels = {
+        "A": "Tiempo medio (s)"    if es else "Mean time (s)",
+        "B": "Ensayos válidos (%)" if es else "Valid trials (%)",
+        "C": "$K$ de Cowan"        if es else "Cowan's $K$",
+        "D": "SSRT (ms)",
+        "E": "coeficiente $c$"     if es else "$c$ coefficient",
+        "F": "Accuracy",
+    }
+    parts = ["Parte A", "Parte B"] if es else ["Part A", "Part B"]
+    return titles, ylabels, parts
+
+
+def main(lang="en"):
     os.makedirs(FIGURES_DIR, exist_ok=True)
+    titles, ylabels, parts = _labels(lang)
 
     print("Loading data...")
     df_tmt, df_sst, df_cdt, df_gonogo = _load_data()
@@ -186,52 +215,58 @@ def main():
 
     # --- A. TMT Completion Time ---
     sns.violinplot(data=tmt_time, x="Part", y="time_sec", ax=ax_a, **VIOLIN_KW, color=C_TMT)
-    ax_a.set_title(f"A. TMT Completion Time\n($N$={tmt_time['subject_id'].nunique()})")
-    ax_a.set_ylabel("Mean time (s)")
+    ax_a.set_title(f"{titles['A']}\n($N$={tmt_time['subject_id'].nunique()})")
+    ax_a.set_ylabel(ylabels["A"])
     ax_a.set_xlabel("")
-    ax_a.set_xticklabels(["Part A", "Part B"], fontsize=TICK_FS)
+    ax_a.set_xticklabels(parts, fontsize=TICK_FS)
 
     # --- B. TMT Completion Rate ---
     sns.violinplot(data=tmt_pct, x="Part", y="pct_valid", ax=ax_b, **VIOLIN_KW, color=C_TMT)
-    ax_b.set_title(f"B. TMT Completion Rate\n($N$={tmt_pct['subject_id'].nunique()})")
-    ax_b.set_ylabel("Valid trials (%)")
+    ax_b.set_title(f"{titles['B']}\n($N$={tmt_pct['subject_id'].nunique()})")
+    ax_b.set_ylabel(ylabels["B"])
     ax_b.set_xlabel("")
     ax_b.set_ylim(-5, 105)
-    ax_b.set_xticklabels(["Part A", "Part B"], fontsize=TICK_FS)
+    ax_b.set_xticklabels(parts, fontsize=TICK_FS)
 
     # --- C. Change Detection Task (CDT) ---
     sns.violinplot(data=cdt_long, x="Set Size", y="K", ax=ax_c, **VIOLIN_KW, color=C_CDT)
-    ax_c.set_title(f"C. Change Detection Task\n($N$={df_cdt['subject_id'].nunique()})")
-    ax_c.set_ylabel("Cowan's $K$")
+    ax_c.set_title(f"{titles['C']}\n($N$={df_cdt['subject_id'].nunique()})")
+    ax_c.set_ylabel(ylabels["C"])
     ax_c.set_xlabel("")
     ax_c.set_xticklabels(["$K_4$", "$K_6$"], fontsize=TICK_FS)
 
     # --- D. Stop Signal Task (SST) ---
     sns.violinplot(data=df_sst, y="ssrt", ax=ax_d, **VIOLIN_KW, color=C_SST)
-    ax_d.set_title(f"D. Stop Signal Task\n($N$={len(df_sst)})")
-    ax_d.set_ylabel("SSRT (ms)")
+    ax_d.set_title(f"{titles['D']}\n($N$={len(df_sst)})")
+    ax_d.set_ylabel(ylabels["D"])
     ax_d.set_xlabel("")
     ax_d.set_xticks([])
 
     # --- E. Go/No-Go — c coefficient ---
     sns.violinplot(data=df_gonogo, y="c", ax=ax_e, **VIOLIN_KW, color=C_GONOGO)
     ax_e.axhline(0, color=C_GRAY, ls="--", lw=0.8, zorder=0)
-    ax_e.set_title(f"E. Go/No-Go — $c$ coefficient\n($N$={len(df_gonogo)})")
-    ax_e.set_ylabel("$c$ coefficient")
+    ax_e.set_title(f"{titles['E']}\n($N$={len(df_gonogo)})")
+    ax_e.set_ylabel(ylabels["E"])
     ax_e.set_xlabel("")
     ax_e.set_xticks([])
 
     # --- F. Go/No-Go — Accuracy ---
     sns.violinplot(data=df_gonogo, y="accuracy", ax=ax_f, **VIOLIN_KW, color=C_GONOGO)
-    ax_f.set_title(f"F. Go/No-Go — Accuracy\n($N$={len(df_gonogo)})")
-    ax_f.set_ylabel("Accuracy")
+    ax_f.set_title(f"{titles['F']}\n($N$={len(df_gonogo)})")
+    ax_f.set_ylabel(ylabels["F"])
     ax_f.set_xlabel("")
     ax_f.set_xticks([])
 
     apply_style([ax_a, ax_b, ax_c, ax_d, ax_e, ax_f])
     fig.tight_layout()
-    save_fig(fig, "fig2_performance_distributions.png")
+    suffix = "_es" if lang == "es" else ""
+    save_fig(fig, f"fig2_performance_distributions{suffix}.png")
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    parser = argparse.ArgumentParser(description="Generate the performance-distributions violin figure")
+    parser.add_argument("--lang", choices=["en", "es"], default="en",
+                        help="Idioma de los títulos/ejes (default: en)")
+    args = parser.parse_args()
+    main(args.lang)
