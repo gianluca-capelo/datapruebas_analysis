@@ -4,7 +4,8 @@ Produces a single multi-panel figure (2×2) that mirrors the style of
 paper_figures.ipynb Figure 3.
 
 Usage:
-    python -m analysis.scripts.generate_shap_figures
+    python -m analysis.scripts.generate_shap_figures            # inglés
+    python -m analysis.scripts.generate_shap_figures --lang es  # castellano
 """
 import os
 
@@ -48,10 +49,10 @@ C_AMBER  = "#E69F00"  # CDT / K_mean
 C_PURPLE = "#9B59B6"  # Go/No-Go
 
 COMBINATIONS = [
-    {"label": "A. Age — SVR",                 "dataset": "tmt_age",      "model": "SVR",          "task": "regression", "timestamp": "2026-03-07_1213", "color": C_DEMO},
-    {"label": "B. $K_{mean}$ — XGBRegressor", "dataset": "tmt_k_mean",   "model": "XGBRegressor", "task": "regression", "timestamp": "2026-03-06_2028", "color": C_AMBER},
-    {"label": "C. Accuracy — SVR",            "dataset": "tmt_accuracy", "model": "SVR",          "task": "regression", "timestamp": "2026-03-07_1213", "color": C_PURPLE},
-    {"label": "D. $c$ coefficient — Ridge",   "dataset": "tmt_c",        "model": "Ridge",        "task": "regression", "timestamp": "2026-03-07_1213", "color": C_PURPLE},
+    {"label": "A. Age - SVR",                 "label_es": "A. Edad - SVR",                 "dataset": "tmt_age",      "model": "SVR",          "task": "regression", "timestamp": "2026-03-07_1213", "color": C_DEMO},
+    {"label": "B. $K_{mean}$ - XGBRegressor", "label_es": "B. $K_{mean}$ - XGBRegressor", "dataset": "tmt_k_mean",   "model": "XGBRegressor", "task": "regression", "timestamp": "2026-03-06_2028", "color": C_AMBER},
+    {"label": "C. Accuracy - SVR",            "label_es": "C. Accuracy - SVR",            "dataset": "tmt_accuracy", "model": "SVR",          "task": "regression", "timestamp": "2026-03-07_1213", "color": C_PURPLE},
+    {"label": "D. $c$ coefficient - Ridge",   "label_es": "D. $c$ coefficient - Ridge",   "dataset": "tmt_c",        "model": "Ridge",        "task": "regression", "timestamp": "2026-03-07_1213", "color": C_PURPLE},
 ]
 
 # Human-readable feature labels — mirrors paper_figures.ipynb FEATURE_LABELS
@@ -261,7 +262,7 @@ def _compute_shap(dataset, model, timestamp, task="regression"):
     return analyze_shap_results(explanations, task=task)
 
 
-def main():
+def main(lang: str = "en"):
     os.makedirs(FIGURES_DIR, exist_ok=True)
 
     # Load / compute SHAP data for every panel
@@ -301,7 +302,8 @@ def main():
                     fontsize=_ANNOT_FS, color=color)
         ax.set_xlim(0, max_val * 1.5)
 
-        ax.set_title(combo["label"], fontsize=_TITLE_FS)
+        label = combo["label_es"] if lang == "es" else combo["label"]
+        ax.set_title(label, fontsize=_TITLE_FS)
         ax.set_xlabel("Mean |SHAP|", fontsize=_LABEL_FS * 0.9)
         ax.set_ylabel("")
         ax.tick_params(axis="y", labelsize=_YTICK_FS)
@@ -309,10 +311,16 @@ def main():
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
 
-    save_path = os.path.join(FIGURES_DIR, "fig3_shap_importance.png")
+    suffix = "_es" if lang == "es" else ""
+    save_path = os.path.join(FIGURES_DIR, f"fig3_shap_importance{suffix}.png")
     fig.savefig(save_path, dpi=DPI, bbox_inches="tight")
     print(f"\nSaved -> {save_path}")
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    parser = argparse.ArgumentParser(description="Generate SHAP summary figure")
+    parser.add_argument("--lang", choices=["en", "es"], default="en",
+                        help="Idioma de los títulos (default: en)")
+    args = parser.parse_args()
+    main(args.lang)
