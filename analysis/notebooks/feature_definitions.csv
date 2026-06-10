@@ -1,0 +1,27 @@
+Code name,Feature,Description
+area_difference_from_ideal,Area difference from ideal,Difference between the area of the actual path and the ideal path.
+correct_targets_touches,Correct touches,Number of correct target touches
+distance_difference_from_ideal,Distance difference from ideal,Difference between the traveled path length and the length of the ideal straight line connecting to the next target.
+max_duration,Hesitation max duration,Longest hesitation duration during the trial
+average_duration,Hesitation average duration,Mean duration of individual hesitation periods detected in the trial.
+hesitation_avg_speed,Hesitation average speed,Average hesitation speed.
+hesitation_distance,Hesitation distance,Total distance traveled by the cursor in hesitation
+hesitation_ratio,Hesitation ratio,Proportion of time in hesitation relative to total travel time: hesitation_time / (travel_time + hesitation_time).
+hesitation_time,Hesitation time,Total time spent in the hesitation state during the trial.
+inter_target_time,Inter-target time,Sum of time elapsed between successive target touches.
+intra_target_time,Intra-target time,Sum of time spent within the area of a target before leaving it.
+mean_speed,Mean speed,Average cursor speed.
+number_of_crosses,Number of crosses,"Number of times the cursor trajectory crosses itself, excluding intersections between temporally adjacent segments."
+peak_speed,Peak speed,Maximum cursor speed observed.
+rt,Time in trial,Total duration of the trial.
+search_avg_speed,Search average speed,Average cursor speed during search movements.
+search_distance,Search distance,Total distance traveled during search movements.
+search_time,Search time,Total time spent in the search state.
+state_transitions,State transitions,"Total number of transitions for one state (hesitation, search or travel) to another"
+std_speed,SD speed,Standard deviation of the cursor speed.
+total_distance,Total distance,Total distance traveled by the cursor.
+total_hesitations,Hesitations,Count of distinct hesitation periods detected in the trial.
+travel_avg_speed,Travel average speed,Average cursor speed during travel segments.
+travel_distance,Travel distance,Total distance traveled during travel segments.
+travel_time,Travel time,Total time spent during travel segments.
+wrong_targets_touches,Wrong target touches,Count of cursor touches on incorrect targets (not the next expected in the sequence).
