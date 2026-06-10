@@ -52,7 +52,7 @@ COMBINATIONS = [
     {"label": "A. Age - SVR",                 "label_es": "A. Edad - SVR",                 "dataset": "tmt_age",      "model": "SVR",          "task": "regression", "timestamp": "2026-03-07_1213", "color": C_DEMO},
     {"label": "B. $K_{mean}$ - XGBRegressor", "label_es": "B. $K_{mean}$ - XGBRegressor", "dataset": "tmt_k_mean",   "model": "XGBRegressor", "task": "regression", "timestamp": "2026-03-06_2028", "color": C_AMBER},
     {"label": "C. Accuracy - SVR",            "label_es": "C. Accuracy - SVR",            "dataset": "tmt_accuracy", "model": "SVR",          "task": "regression", "timestamp": "2026-03-07_1213", "color": C_PURPLE},
-    {"label": "D. $c$ coefficient - Ridge",   "label_es": "D. $c$ coefficient - Ridge",   "dataset": "tmt_c",        "model": "Ridge",        "task": "regression", "timestamp": "2026-03-07_1213", "color": C_PURPLE},
+    {"label": "D. $c$ coefficient - Ridge",   "label_es": "D. coeficiente c - Ridge",     "dataset": "tmt_c",        "model": "Ridge",        "task": "regression", "timestamp": "2026-03-07_1213", "color": C_PURPLE},
 ]
 
 # Human-readable feature labels — mirrors paper_figures.ipynb FEATURE_LABELS
