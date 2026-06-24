@@ -23,7 +23,7 @@ from analysis.scripts.generate_shap_figures import (
 )
 
 
-def _draw_panel(ax, label, shap_df, color, lang):
+def _draw_panel(ax, title, shap_df, color, lang):
     """Render one SHAP importance panel (mirrors generate_shap_figures.main loop)."""
     df_plot = shap_df.sort_values("mean_abs_shap", ascending=True).tail(TOP_N)
     df_plot.index = df_plot.index.map(lambda x: FEATURE_LABELS.get(x, x))
@@ -40,8 +40,10 @@ def _draw_panel(ax, label, shap_df, color, lang):
                 fontsize=_ANNOT_FS, color=color)
     ax.set_xlim(0, max_val * 1.5)
 
-    ax.set_title(label, fontsize=_TITLE_FS)
-    ax.set_xlabel("Mean |SHAP|", fontsize=_LABEL_FS * 0.9)
+    xlabel = ("Media |SHAP| (entre folds seleccionados)" if lang == "es"
+              else "Mean |SHAP| (across selected folds)")
+    ax.set_title(title, fontsize=_TITLE_FS)
+    ax.set_xlabel(xlabel, fontsize=_LABEL_FS * 0.9)
     ax.set_ylabel("")
     ax.tick_params(axis="y", labelsize=_YTICK_FS)
     ax.tick_params(axis="x", labelsize=_TICK_FS)
@@ -61,12 +63,16 @@ def main(lang="en"):
 
     print("Loading SHAP data...")
     for combo in COMBINATIONS:
-        label = combo["label_es"] if lang == "es" else combo["label"]
+        raw = combo["label_es"] if lang == "es" else combo["label"]
+        # strip the "A. " panel-letter prefix -> "{target} - {model}"
+        target_model = raw.split(". ", 1)[1] if ". " in raw else raw
+        title = (f"Importancia media |SHAP| para {target_model}" if lang == "es"
+                 else f"Mean |SHAP| importance for {target_model}")
         shap_df = _compute_shap(combo["dataset"], combo["model"], combo["timestamp"], combo["task"])
 
         fig = plt.figure(figsize=(_FIG_W / 2, _FIG_H / 2))
         ax = fig.add_subplot(111)
-        _draw_panel(ax, label, shap_df, combo["color"], lang)
+        _draw_panel(ax, title, shap_df, combo["color"], lang)
         fig.tight_layout()
 
         letter = _panel_letter(combo["label"])
