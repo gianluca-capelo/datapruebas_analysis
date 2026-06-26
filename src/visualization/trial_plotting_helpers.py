@@ -30,8 +30,10 @@ def draw_trial_targets(
     circle_alpha: float = 0.3,
     circle_fill: bool = False,
     circle_linestyle: str = '-',
+    circle_linewidth: float = None,
     text_fontsize: int = 8,
     text_color: str = 'black',
+    text_fontweight: str = None,
     zorder_circle: int = 5,
     zorder_text: int = 6,
     radius_multiplier: float = None,
@@ -80,6 +82,7 @@ def draw_trial_targets(
             color=circle_color,
             alpha=circle_alpha,
             linestyle=circle_linestyle,
+            linewidth=circle_linewidth,
             zorder=zorder_circle
         )
         ax.add_patch(circle)
@@ -87,6 +90,7 @@ def draw_trial_targets(
             tx, ty, target.content,
             color=text_color,
             fontsize=text_fontsize,
+            fontweight=text_fontweight,
             ha='center',
             va='center',
             zorder=zorder_text

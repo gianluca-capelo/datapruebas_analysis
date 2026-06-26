@@ -29,11 +29,11 @@ RAW_EXPERIMENT_PATH = os.path.join(
 )
 
 plt.style.use(["science", "no-latex"])
-LABEL_FS = 22
-TICK_FS = 18
-LEGEND_FS = 16
-TARGET_FS = 14
-DPI = 300
+LABEL_FS = 18
+TICK_FS = 15
+LEGEND_FS = 15
+TARGET_FS = 15
+DPI = 600
 
 # Segmentation colors — thesis Figure 2 caption mapping (Okabe-Ito)
 SEG_COLORS = {
@@ -96,19 +96,26 @@ def main(lang="en", subject_id=None, trial_id=None):
     legend_title = "Segmentación" if es else "Segmentation"
 
     fig, ax = plt.subplots(figsize=(7, 7))
-    ax.scatter(cursor_x, cursor_y, c=point_colors, s=15, zorder=4, alpha=0.85)
-    draw_trial_targets(ax, trial, subject.target_radius, circle_color="#0072B2",
-                       text_fontsize=TARGET_FS)
+    # faint trajectory line under the colored points (reading order)
+    ax.plot(cursor_x, cursor_y, color="#cccccc", lw=1.0, alpha=0.6,
+            zorder=2, solid_capstyle="round")
+    ax.scatter(cursor_x, cursor_y, c=point_colors, s=20, alpha=0.9,
+               linewidths=0, zorder=4)
+    # neutral-gray targets so the blue stays exclusive to "hesitation"
+    draw_trial_targets(ax, trial, subject.target_radius, circle_color="black",
+                       circle_alpha=0.9, circle_linewidth=1.3,
+                       text_fontsize=TARGET_FS, text_color="black")
     configure_trial_axes(ax, x=cursor_x, y=cursor_y, show_labels=True,
                          xlabel=xlabel, ylabel=ylabel)
 
     handles = [
         plt.Line2D([0], [0], marker="o", color="w", label=name.lower(),
-                   markerfacecolor=SEG_COLORS[name], markersize=10)
+                   markerfacecolor=SEG_COLORS[name], markersize=11)
         for name in ("Hesitation", "Search", "Travel")
     ]
     ax.legend(handles=handles, title=legend_title, frameon=True,
-              fontsize=LEGEND_FS, title_fontsize=LEGEND_FS)
+              fontsize=LEGEND_FS, title_fontsize=LEGEND_FS,
+              framealpha=0.9, edgecolor="#cccccc")
 
     ax.xaxis.label.set_fontsize(LABEL_FS)
     ax.yaxis.label.set_fontsize(LABEL_FS)
@@ -116,9 +123,10 @@ def main(lang="en", subject_id=None, trial_id=None):
     # No title (per spec)
 
     suffix = "_es" if es else ""
-    save_path = os.path.join(FIGURES_DIR, f"fig2a_tmt_segmentation{suffix}.png")
-    fig.savefig(save_path, dpi=DPI, bbox_inches="tight")
-    print(f"Saved -> {save_path}")
+    base = os.path.join(FIGURES_DIR, f"fig2a_tmt_segmentation{suffix}")
+    fig.savefig(f"{base}.png", dpi=DPI, bbox_inches="tight")
+    fig.savefig(f"{base}.pdf", bbox_inches="tight")  # vectorial
+    print(f"Saved -> {base}.png  (+ .pdf)")
 
 
 if __name__ == "__main__":
