@@ -2,8 +2,8 @@
 
 Each cursor point is colored by its movement state (hesitation / search /
 travel), reproducing the Methods segmentation figure (thesis Figure 2A).
-Standalone replica of paper_figures.ipynb cell 13, with the thesis color mapping
-(hesitation=blue, search=orange, travel=green) and Spanish labels (no title).
+Standalone replica of paper_figures.ipynb cell 13, with color mapping
+(hesitation=orange, search=green, travel=blue) and Spanish labels (no title).
 
 Usage:
     python -m analysis.scripts.generate_segmentation_figure            # inglés
@@ -35,11 +35,11 @@ LEGEND_FS = 15
 TARGET_FS = 15
 DPI = 600
 
-# Segmentation colors — thesis Figure 2 caption mapping (Okabe-Ito)
+# Segmentation colors (Okabe-Ito)
 SEG_COLORS = {
-    "Hesitation": "#0072B2",  # azul
-    "Search":     "#D55E00",  # naranja
-    "Travel":     "#009E73",  # verde
+    "Hesitation": "#D55E00",  # naranja
+    "Search":     "#009E73",  # verde
+    "Travel":     "#0072B2",  # azul
 }
 C_GRAY = "#888888"
 
@@ -109,7 +109,7 @@ def main(lang="en", subject_id=None, trial_id=None):
                          xlabel=xlabel, ylabel=ylabel)
 
     handles = [
-        plt.Line2D([0], [0], marker="o", color="w", label=name.lower(),
+        plt.Line2D([0], [0], marker="o", color="w", label=name,
                    markerfacecolor=SEG_COLORS[name], markersize=11)
         for name in ("Hesitation", "Search", "Travel")
     ]
