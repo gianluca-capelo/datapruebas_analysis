@@ -38,7 +38,7 @@ DPI = 600
 # Segmentation colors (Okabe-Ito)
 SEG_COLORS = {
     "Hesitation": "#FF7F0E",  # naranja (tab10)
-    "Search":     "#2CA02C",  # verde (tab10)
+    "Search":     "#4CAF50",  # verde (más claro)
     "Travel":     "#1F77B4",  # azul (tab10)
 }
 C_GRAY = "#888888"

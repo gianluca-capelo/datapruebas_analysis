@@ -46,7 +46,7 @@ def _draw_panel(ax, label, shap_df, color):
     ax.set_xlim(0, max_val * 1.5)
 
     ax.set_title(label, fontsize=_TITLE_FS)
-    ax.set_xlabel("Mean |SHAP|", fontsize=_LABEL_FS * 0.9)
+    ax.set_xlabel("Media |SHAP| (entre folds seleccionados)", fontsize=_LABEL_FS * 0.9)
     ax.set_ylabel("")
     ax.tick_params(axis="y", labelsize=_YTICK_FS)
     ax.tick_params(axis="x", labelsize=_TICK_FS)
