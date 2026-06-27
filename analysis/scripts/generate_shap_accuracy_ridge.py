@@ -63,7 +63,8 @@ def main():
     # Single panel sized like one quadrant of the 2x2 main figure (keeps fonts proportional)
     fig = plt.figure(figsize=(_FIG_W / 2, _FIG_H / 2))
     ax = fig.add_subplot(111)
-    _draw_panel(ax, TITLE, shap_df, C_PURPLE)
+    title = f"Importancia media |SHAP| para {TITLE}"
+    _draw_panel(ax, title, shap_df, C_PURPLE)
     fig.tight_layout()
 
     save_path = os.path.join(FIGURES_DIR, OUT_NAME)
