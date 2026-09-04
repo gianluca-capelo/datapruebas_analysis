@@ -26,7 +26,16 @@ def _select_metric(metric: str):
     raise ValueError("Unknown metric: {}".format(metric))
 
 
-def permutation_test(y_true, y_pred, n_permutations=1000, seed=42, metric='auc'):
+def permutation_test(y_true, y_pred, n_permutations=1000, seed=42, metric='auc',
+                     return_null_distribution=False):
+    """
+    Permutation test on a fixed set of predictions: y_true is shuffled while
+    y_pred stays fixed, so the null distribution reflects the metric expected
+    when the target carries no information about the predictions.
+
+    Returns (true_score, p_value), or (true_score, p_value, permuted_scores)
+    when return_null_distribution is True.
+    """
     y_true = np.asarray(y_true)
     y_pred = np.asarray(y_pred)
 
@@ -68,6 +77,9 @@ def permutation_test(y_true, y_pred, n_permutations=1000, seed=42, metric='auc')
 
     n_better_or_equal = np.sum(permuted_better_or_equal)
     p_value = (n_better_or_equal + 1) / (len(permuted_scores) + 1)
+
+    if return_null_distribution:
+        return true_score, p_value, np.array(permuted_scores)
 
     return true_score, p_value
 

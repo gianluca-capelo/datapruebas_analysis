@@ -35,6 +35,9 @@ LEGEND_FS = 15
 TARGET_FS = 15
 DPI = 600
 
+# --big-fonts multiplies every font size by this factor (for slides/presentations).
+FONT_SCALE = 1.4
+
 # Segmentation colors (Okabe-Ito)
 SEG_COLORS = {
     "Hesitation": "#FF7F0E",  # naranja (tab10)
@@ -66,8 +69,15 @@ def _select_trial(df_tmt, subject_id=None, trial_id=None):
     return df_cand.sort_values("total_hesitations", ascending=False).iloc[5]
 
 
-def main(lang="en", subject_id=None, trial_id=None):
+def main(lang="en", subject_id=None, trial_id=None, big_fonts=False):
     os.makedirs(FIGURES_DIR, exist_ok=True)
+
+    if big_fonts:
+        global LABEL_FS, TICK_FS, LEGEND_FS, TARGET_FS
+        LABEL_FS = round(LABEL_FS * FONT_SCALE)
+        TICK_FS = round(TICK_FS * FONT_SCALE)
+        LEGEND_FS = round(LEGEND_FS * FONT_SCALE)
+        TARGET_FS = round(TARGET_FS * FONT_SCALE)
 
     df_tmt = pd.read_csv(_latest_tmt_analysis_path(), on_bad_lines="warn")
     row = _select_trial(df_tmt, subject_id, trial_id)
@@ -94,6 +104,10 @@ def main(lang="en", subject_id=None, trial_id=None):
     xlabel = "Coordenada X (px)" if es else "X Screen Coordinate (px)"
     ylabel = "Coordenada Y (px)" if es else "Y Screen Coordinate (px)"
     legend_title = "Segmentación" if es else "Segmentation"
+    # display names for the legend; SEG_COLORS keys stay in English because
+    # classify_cursor_positions_with_hesitation returns them
+    seg_names = {"Hesitation": "Duda", "Search": "Búsqueda", "Travel": "Viaje"} if es else {
+        "Hesitation": "Hesitation", "Search": "Search", "Travel": "Travel"}
 
     fig, ax = plt.subplots(figsize=(7, 7))
     # faint trajectory line under the colored points (reading order)
@@ -109,13 +123,17 @@ def main(lang="en", subject_id=None, trial_id=None):
                          xlabel=xlabel, ylabel=ylabel)
 
     handles = [
-        plt.Line2D([0], [0], marker="o", color="w", label=name,
+        plt.Line2D([0], [0], marker="o", color="w", label=seg_names[name],
                    markerfacecolor=SEG_COLORS[name], markersize=11)
         for name in ("Hesitation", "Search", "Travel")
     ]
-    ax.legend(handles=handles, title=legend_title, frameon=True,
-              fontsize=LEGEND_FS, title_fontsize=LEGEND_FS,
-              framealpha=0.9, edgecolor="#cccccc")
+    legend_kwargs = dict(handles=handles, title=legend_title, frameon=True,
+                         fontsize=LEGEND_FS, title_fontsize=LEGEND_FS,
+                         framealpha=0.9, edgecolor="#cccccc")
+    if big_fonts:
+        # move the legend outside the plot, upper-right, so it doesn't cover data
+        legend_kwargs.update(loc="upper left", bbox_to_anchor=(1.02, 1.0))
+    ax.legend(**legend_kwargs)
 
     ax.xaxis.label.set_fontsize(LABEL_FS)
     ax.yaxis.label.set_fontsize(LABEL_FS)
@@ -123,7 +141,8 @@ def main(lang="en", subject_id=None, trial_id=None):
     # No title (per spec)
 
     suffix = "_es" if es else ""
-    base = os.path.join(FIGURES_DIR, f"fig2a_tmt_segmentation{suffix}")
+    big_suffix = "_big" if big_fonts else ""
+    base = os.path.join(FIGURES_DIR, f"fig2a_tmt_segmentation{big_suffix}{suffix}")
     fig.savefig(f"{base}.png", dpi=DPI, bbox_inches="tight")
     fig.savefig(f"{base}.pdf", bbox_inches="tight")  # vectorial
     print(f"Saved -> {base}.png  (+ .pdf)")
@@ -136,5 +155,7 @@ if __name__ == "__main__":
                         help="Idioma de ejes/leyenda (default: en)")
     parser.add_argument("--subject", default=None, help="Override subject_id")
     parser.add_argument("--trial", default=None, help="Override trial_id")
+    parser.add_argument("--big-fonts", action="store_true",
+                        help="Agranda las fuentes para presentaciones")
     args = parser.parse_args()
-    main(args.lang, args.subject, args.trial)
+    main(args.lang, args.subject, args.trial, args.big_fonts)
