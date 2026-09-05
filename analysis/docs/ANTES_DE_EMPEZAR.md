@@ -4,7 +4,7 @@ Los scripts y notebooks de `analysis/` no generan resultados de ML por si solos.
 
 ## Prerequisito: resultados de regresion en `results/`
 
-Todos los scripts (`consolidate_results`, `add_dispersion_metrics`, `generate_shap_figures`) y todos los notebooks (`ml_results/`, `metrics/`, `shap_analysis/`) leen datos de:
+Todos los scripts (`consolidate_results`, `add_dispersion_metrics`, `figures.shap_main`) y todos los notebooks (`ml_results/`, `metrics/`, `shap_analysis/`) leen datos de:
 
 ```
 results/regression/{timestamp}/{target}/{dataset}/
@@ -74,7 +74,7 @@ Una vez que tenes al menos un timestamp con resultados, podes usar los scripts y
 | 1 | `python -m analysis.scripts.consolidate_results <ts1> <ts2> ...` | Combina timestamps en un CSV unico con metricas de dispersion y p-values | [consolidate_results.md](consolidate_results.md) |
 | 2 | Notebooks en `notebooks/ml_results/` | Analisis detallado por target (comparacion de modelos, residuos, permutaciones) | - |
 | 3 | Notebooks en `notebooks/metrics/` | Comparacion de metricas de error y dispersion entre targets | - |
-| 4 | `python -m analysis.scripts.generate_shap_figures` | Genera figuras de importancia SHAP | [shap.md](shap.md) |
+| 4 | `python -m analysis.scripts.figures.shap_main` | Genera figuras de importancia SHAP | [shap.md](shap.md) |
 | 5 | Notebook en `notebooks/shap_analysis/` | Exploracion interactiva de resultados SHAP | [shap.md](shap.md) |
 
 > Los pasos 2-5 requieren haber ejecutado el paso 1 primero (excepto SHAP, que lee directamente de `results/`).

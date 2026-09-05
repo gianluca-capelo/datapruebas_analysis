@@ -1,6 +1,6 @@
 """Animate a synthetic cTMT-style trail over big labelled targets (closing slide).
 
-Presentation counterpart of generate_time_animation.py: same look and feel (mouse
+Presentation counterpart of `time_animation`: same look and feel (mouse
 cursor sweeping a trail colored by elapsed time, mp4 with gif fallback) but with
 NO real data involved — neither the targets nor the trajectory come from an
 experiment, they are generated here.
@@ -17,43 +17,50 @@ The output is an MP4 (needs ffmpeg, bundled via imageio-ffmpeg). If ffmpeg is
 unavailable it falls back to a GIF via pillow.
 
 Usage:
-    python -m analysis.scripts.generate_final_slide_animation                 # 7 hitos + "Fin"
-    python -m analysis.scripts.generate_final_slide_animation --lang en       # same in English
-    python -m analysis.scripts.generate_final_slide_animation --labels "TMT,ML,SHAP,Conclusiones,Fin"
-    python -m analysis.scripts.generate_final_slide_animation --layout random --seed 7
+    python -m analysis.scripts.figures.final_slide_animation                 # 7 hitos + "Fin"
+    python -m analysis.scripts.figures.final_slide_animation --lang en       # same in English
+    python -m analysis.scripts.figures.final_slide_animation --labels "TMT,ML,SHAP,Conclusiones,Fin"
+    python -m analysis.scripts.figures.final_slide_animation --layout random --seed 7
 """
+import argparse
 import os
 import textwrap
 
-import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns  # noqa: F401 — registers the crest/mako/flare colormaps
 from matplotlib.colors import ListedColormap, to_rgba
 from matplotlib.patches import Circle
-import numpy as np
-import scienceplots  # noqa: F401 — registers styles
-import seaborn as sns  # noqa: F401 — registers the crest/mako/flare colormaps
 
-# Reuse the real animation's building blocks so both videos look like siblings:
-# same output folder, same mouse-cursor marker, same frame pacing and the same
-# mp4 -> gif writer fallback.
-from analysis.scripts.generate_segmentation_figure import FIGURES_DIR
-from analysis.scripts.generate_time_animation import (
-    _MOUSE_CURSOR_MARKER,
-    _frame_point_counts,
-    _register_bundled_ffmpeg,
+from analysis.scripts.figures._style import (
+    ANIMATION_DPI,
+    FIGURES_DIR,
+    add_lang_argument,
+    lang_suffix,
+    use_science_style,
+)
+from analysis.scripts.figures.animation_common import (
+    MOUSE_CURSOR_MARKER,
+    frame_point_counts,
+    resolve_writer,
 )
 
-plt.style.use(["science", "no-latex"])
+use_science_style()
 # Slide typography: the science style is serif (thesis figures); a humanist sans
-# reads much better projected. Lato is installed system-wide here, DejaVu Sans is
-# matplotlib's always-available fallback.
+# reads much better projected. DejaVu Sans is matplotlib's always-available
+# fallback when Lato is not installed.
 plt.rcParams["font.family"] = "sans-serif"
 plt.rcParams["font.sans-serif"] = ["Lato", "DejaVu Sans"]
-DPI = 150  # 12.8x7.2 in @ 150 dpi -> 1920x1080
-# Large flat areas of solid color plus a thin dotted trail is a worst case for a
-# low bitrate: the real animation's 2400 kbps leaves visible ghosting inside the
-# targets, so this one encodes fatter.
+
+DPI = ANIMATION_DPI  # 12.8x7.2 in @ 150 dpi -> 1920x1080
+# Large flat areas of solid color plus a thin dotted trail are a worst case for
+# a low bitrate: the trial animation's 2400 kbps leaves visible ghosting inside
+# the targets, so this one encodes fatter.
 BITRATE = 12000
+
+# Bigger than in the trial animation: this canvas is a full slide.
+CURSOR_STYLES = {"arrow": (MOUSE_CURSOR_MARKER, 36), "dot": ("o", 17)}
 
 # Fixed 16:9 canvas in "screen pixels": axis limits never depend on the targets,
 # so the rendered frame is always exactly 16:9 with aspect="equal" (no white
@@ -72,15 +79,8 @@ CMAP_RANGE = (0.15, 1.0)
 # yellow swapped for a violet) ordered so that consecutive targets never land on
 # neighbouring hues. A sequential colormap makes 7 nodes look nearly identical;
 # these stay distinguishable, also for color-blind viewers.
-PALETTE = [
-    "#0072B2",  # azul
-    "#E69F00",  # naranja
-    "#009E73",  # verde
-    "#CC79A7",  # rosa
-    "#56B4E9",  # celeste
-    "#D55E00",  # bermellon
-    "#7B4FA8",  # violeta
-]
+PALETTE = ["#0072B2", "#E69F00", "#009E73", "#CC79A7", "#56B4E9", "#D55E00",
+           "#7B4FA8"]
 
 # Curated layouts, one per number of targets: zig-zags that read left to right,
 # TMT-like, keeping every pair of targets far apart (y-down screen coordinates).
@@ -253,16 +253,6 @@ def _fit_label(label, radius=TARGET_RADIUS):
     return best[1], best[0]
 
 
-def _resolve_writer(base, fmt, fps):
-    """Output path + writer, falling back to a GIF when ffmpeg is unavailable."""
-    _register_bundled_ffmpeg()
-    if fmt == "mp4" and animation.FFMpegWriter.isAvailable():
-        return f"{base}.mp4", animation.FFMpegWriter(fps=fps, bitrate=BITRATE)
-    if fmt == "mp4":
-        print("ffmpeg not available; falling back to GIF (pillow).")
-    return f"{base}.gif", animation.PillowWriter(fps=fps)
-
-
 def _clipped_cmap(name, span=CMAP_RANGE):
     """The colormap restricted to ``span``, so neither end blends into white."""
     base = plt.get_cmap(name)
@@ -368,14 +358,14 @@ def main(lang="es", labels=None, layout="fixed", seed=7, colors="palette",
     line, = ax.plot([], [], color=TRAIL_COLOR, lw=1.3, alpha=0.35,
                     zorder=2, solid_capstyle="round")
     scatter = ax.scatter([], [], s=34, alpha=0.95, linewidths=0, zorder=3)
-    cursor_marker, cursor_size = (_MOUSE_CURSOR_MARKER, 36) if cursor == "arrow" else ("o", 17)
+    cursor_marker, cursor_size = CURSOR_STYLES[cursor]
     current, = ax.plot([], [], marker=cursor_marker, markersize=cursor_size,
                        markerfacecolor="white", markeredgecolor="black",
                        markeredgewidth=1.8, linestyle="None", zorder=7)
 
     reveal_frames = max(1, round(fps * seconds))
     hold_frames = max(0, round(fps * hold))
-    counts = _frame_point_counts(len(x), reveal_frames, hold_frames)
+    counts = frame_point_counts(len(x), reveal_frames, hold_frames)
     # A target finishes being painted well within its dwell, so every target —
     # including the last one, which has no outgoing segment — ends fully opaque
     # and hides the trail running behind it.
@@ -415,26 +405,24 @@ def main(lang="es", labels=None, layout="fixed", seed=7, colors="palette",
         fig, update, frames=len(counts), interval=1000.0 / fps, blit=False
     )
 
-    lang_suffix = "_es" if lang == "es" else "_en"
     base = os.path.join(
         FIGURES_DIR,
-        f"fig_final_slide_animation_{len(labels)}targets_{seconds:g}s{lang_suffix}"
+        f"fig_final_slide_animation_{len(labels)}targets_{seconds:g}s{lang_suffix(lang)}"
     )
-    out_path, writer = _resolve_writer(base, fmt, fps)
+    out_path, writer = resolve_writer(base, fmt, fps, bitrate=BITRATE)
     anim.save(out_path, writer=writer, dpi=dpi)
     print(f"Saved -> {out_path}  ({len(counts)} frames @ {fps} fps)")
     plt.close(fig)
 
 
 if __name__ == "__main__":
-    import argparse
     parser = argparse.ArgumentParser(
-        description="Animate a synthetic cTMT-style trail over 5 big targets (closing slide)"
+        description="Animate a synthetic cTMT-style trail over big labelled targets (closing slide)"
     )
-    parser.add_argument("--lang", choices=["en", "es"], default="es",
-                        help="Idioma de la etiqueta final: Fin / End (default: es)")
+    add_lang_argument(parser)
     parser.add_argument("--labels", default=None,
-                        help='Etiquetas separadas por coma (default: "1,2,3,4,Fin")')
+                        help="Etiquetas separadas por coma; determinan la cantidad de "
+                             "targets (default: los 7 hitos de la charla, terminando en Fin)")
     parser.add_argument("--layout", choices=["fixed", "random"], default="fixed",
                         help="Posiciones fijas (curadas) o aleatorias segun --seed (default: fixed)")
     parser.add_argument("--seed", type=int, default=7,

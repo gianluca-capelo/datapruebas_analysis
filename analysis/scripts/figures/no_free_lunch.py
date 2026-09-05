@@ -1,68 +1,49 @@
 """Generate the "No Free Lunch" conceptual figure (stem / lollipop plot).
 
 A schematic — not data-driven — illustrating the No Free Lunch theorem: two
-algorithms (A and B) each excel on different "possible problems", yet averaged
-over all problems their performance is identical (the dashed "Average" line).
-
-To make that point exact, A and B are shifted to share the *same* mean, which is
-where the Average line sits.
-
-Outputs one PNG:
-    fig_no_free_lunch[_en].png
+algorithms each excel on different "possible problems", yet averaged over all
+problems their performance is identical. To make that point exact, both series
+are shifted to share the same mean.
 
 Usage:
-    python -m analysis.scripts.generate_no_free_lunch_figure            # castellano
-    python -m analysis.scripts.generate_no_free_lunch_figure --lang en  # inglés
+    python -m analysis.scripts.figures.no_free_lunch            # castellano
+    python -m analysis.scripts.figures.no_free_lunch --lang en  # inglés
+    python -m analysis.scripts.figures.no_free_lunch --models   # series con nombres de modelos
 """
-import os
+import argparse
 
-import numpy as np
 import matplotlib.pyplot as plt
-import scienceplots  # noqa: F401 — registers styles
+import numpy as np
 
-from src.config import BASE_DIR
+from analysis.scripts.figures._style import (
+    PRINT_DPI,
+    add_lang_argument,
+    lang_suffix,
+    save_fig,
+    use_slide_style,
+)
 
-FIGURES_DIR = os.path.join(BASE_DIR, "analysis", "figures")
-DPI = 300
+use_slide_style()
 
-# ---------------------------------------------------------------------------
-# Typography — same big-font look as generate_demographics_figure_368.py
-# (scienceplots "science" style + presentation rcParams)
-# ---------------------------------------------------------------------------
-plt.style.use(["science", "no-latex"])
-plt.rcParams.update({
-    "axes.labelsize":  20,
-    "xtick.labelsize": 18,
-    "ytick.labelsize": 18,
-})
+C_A = "#D62728"
+C_B = "#1F77B4"
+C_STEM = "#1A1A1A"
+C_AXIS = "#000000"
+C_LABEL = "#000000"
 
-# ---------------------------------------------------------------------------
-# Palette — mirrors the reference schematic
-# ---------------------------------------------------------------------------
-C_A = "#D62728"      # Algorithm A — red
-C_B = "#1F77B4"      # Algorithm B — blue
-C_STEM = "#1A1A1A"   # the vertical problem line (black, as in the original)
-C_AXIS = "#000000"   # axis arrows — black
-C_LABEL = "#000000"  # axis titles — black
-C_AVG = "#1F3A5F"    # average line — navy, dashed
-
-# Font sizes (match the big-font demographics figures)
 LABEL_FS = 20
 SERIES_FS = 20
 
-# ---------------------------------------------------------------------------
-# Schematic "performance" per problem (hand-tuned to resemble the reference).
-# A dominates the left problems, B the middle/right ones.
-# ---------------------------------------------------------------------------
-# Non-alternating winners: A tops the first problems, B the last ones. Built
-# with the same mean so, averaged over all problems, both algorithms tie.
+# Schematic "performance" per problem, hand-tuned to resemble the reference
+# figure: A tops the first problems, B the last ones, and both series are built
+# with the same mean so they tie when averaged over all problems.
 A_RAW = np.array([8.0, 7.5, 4.0, 3.5])
 B_RAW = np.array([3.5, 4.0, 7.5, 8.0])
-AVG = 5.5  # common mean both series are shifted to
+AVG = 5.5
 
 
 def _labels(lang):
-    es = lang != "en"
+    es = lang == "es"
     return {
         "perf": "Rendimiento" if es else "Performance",
         "prob": "Problemas posibles" if es else "Possible Problems",
@@ -79,12 +60,11 @@ def _dots(ax, x, y, color):
 
 
 def main(lang="es", models=False, name_suffix=""):
-    os.makedirs(FIGURES_DIR, exist_ok=True)
     lab = _labels(lang)
 
     # Optionally name the two series after concrete models instead of A/B.
     if models:
-        lab["alg_a"] = "Regresión Lineal" if lang != "en" else "Linear Regression"
+        lab["alg_a"] = "Regresión Lineal" if lang == "es" else "Linear Regression"
         lab["alg_b"] = "Random Forest"
 
     # Shift each series to the common mean so both average to the same line.
@@ -94,8 +74,8 @@ def main(lang="es", models=False, name_suffix=""):
     n = len(a)
     xs = np.arange(1, n + 1)
 
-    x0 = 0.3                 # y-axis position
-    x_right = n + 0.9        # x-axis arrow tip
+    x0 = 0.3           # where the y axis stands
+    x_right = n + 0.9  # tip of the x-axis arrow
     y_top = max(a.max(), b.max()) + 1.0
 
     fig, ax = plt.subplots(figsize=(7.0, 4.4))
@@ -130,20 +110,16 @@ def main(lang="es", models=False, name_suffix=""):
     ax.axis("off")
     fig.tight_layout()
 
-    suffix = "_en" if lang == "en" else ""
+    suffix = lang_suffix(lang)
     suffix += "_random_forest" if models else ""
     if name_suffix:
         suffix += f"_{name_suffix.lstrip('_')}"
-    path = os.path.join(FIGURES_DIR, f"fig_no_free_lunch{suffix}.png")
-    fig.savefig(path, dpi=DPI, bbox_inches="tight")
-    print(f"Saved -> {path}")
+    save_fig(fig, f"fig_no_free_lunch{suffix}", formats=("png",), dpi=PRINT_DPI)
 
 
 if __name__ == "__main__":
-    import argparse
     parser = argparse.ArgumentParser(description="Generate the No Free Lunch figure")
-    parser.add_argument("--lang", choices=["en", "es"], default="es",
-                        help="Idioma de las etiquetas (default: es)")
+    add_lang_argument(parser)
     parser.add_argument("--models", action="store_true",
                         help="Etiqueta las series como Regresión Lineal / Random Forest "
                              "en lugar de Algoritmo A / Algoritmo B")

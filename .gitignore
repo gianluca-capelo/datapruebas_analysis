@@ -214,6 +214,7 @@ results
 
 .vscode/
 
-figures/
+# Generated figure output (NOT analysis/scripts/figures/, which is source).
+/analysis/figures/
 
 analysis 27-01 gus/

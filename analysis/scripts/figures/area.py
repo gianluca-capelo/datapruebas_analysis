@@ -9,57 +9,73 @@ last cursor point of each between-targets segment, not the target centers.
 
 Because the projected coordinate is not monotonic (the cursor can move backwards
 along the ideal line), np.trapz subtracts area on those stretches. This figure
-makes that explicit.
-
-Left panel:  the trial in screen coordinates, with each segment's ideal line and
-             the integrated area shaded between real trail and ideal line.
-Right panel: the highlighted segment rectified — x = position along the ideal
-             line, y = perpendicular distance — which is literally what np.trapz
-             integrates. Stretches that subtract area are drawn in red hatching.
+makes that explicit: the left panel shades the integrated area in screen
+coordinates, and --rectified adds a right panel showing the same segment as
+np.trapz sees it (position along the ideal line vs. perpendicular distance),
+with the subtracting stretches hatched in red.
 
 Usage:
-    python -m analysis.scripts.generate_area_figure                  # inglés
-    python -m analysis.scripts.generate_area_figure --lang es        # castellano
-    python -m analysis.scripts.generate_area_figure --segment D      # destacar target D
+    python -m analysis.scripts.figures.area                  # castellano
+    python -m analysis.scripts.figures.area --lang en        # inglés
+    python -m analysis.scripts.figures.area --segment D      # destacar el target D
+    python -m analysis.scripts.figures.area --rectified      # + panel rectificado
 """
-import os
+import argparse
 
 import matplotlib.pyplot as plt
 import numpy as np
-import scienceplots  # noqa: F401 — registers styles
-import pandas as pd
 from matplotlib.collections import PolyCollection
 from matplotlib.patches import Patch
 
-from src import config
-from src.mapper.datapruebas.datapruebas_mapper import DatapruebasTMTMapper
 from neurotask.tmt.metrics.targets_touched import get_all_trails_between_targets
-from src.visualization.trial_plotting_helpers import draw_trial_targets, configure_trial_axes
-# Reuse the segmentation figure's trial selection so all figures show the same trial.
-from analysis.scripts.generate_segmentation_figure import (
-    FIGURES_DIR,
-    RAW_EXPERIMENT_PATH,
-    _latest_tmt_analysis_path,
-    _select_trial,
+from src import config
+
+from analysis.scripts.figures import trial_data
+from analysis.scripts.figures._style import (
+    TRIAL_DPI,
+    TRIAL_FONTS,
+    add_lang_argument,
+    lang_suffix,
+    save_fig,
+    use_science_style,
 )
 
-plt.style.use(["science", "no-latex"])
-# match generate_segmentation_figure / generate_speed_figure so --big-fonts
-# yields the same label sizes across the three figures
-LABEL_FS = 18
-TICK_FS = 15
-LEGEND_FS = 15
-TARGET_FS = 15
-DPI = 600
+use_science_style()
 
-# --big-fonts multiplies every font size by this factor (for slides/presentations).
-FONT_SCALE = 1.4
-
-C_ADD = "#1F77B4"      # tramos que suman area
-C_SUB = "#D62728"      # tramos que restan area (retroceso sobre la ideal)
+C_ADD = "#1F77B4"
+C_SUB = "#D62728"
 C_TRAIL = "#333333"
 C_IDEAL = "#000000"
 C_FAINT = "#cccccc"
+
+LABELS = {
+    "es": {
+        "s_label": "Posición sobre la recta ideal (px)",
+        "d_label": "Distancia perpendicular (px)",
+        "adds": "Área que suma",
+        "subtracts": "Área que resta (retroceso)",
+        "distance": "Trayectoria real",
+        "ideal": "Trayectoria ideal",
+        "area_subject": "Área del sujeto",
+        "segment": "Segmento",
+        "net": "Área neta (métrica)",
+        "uncancelled": "Sin cancelación",
+        "cancelled": "Cancelada",
+    },
+    "en": {
+        "s_label": "Position along ideal line (px)",
+        "d_label": "Perpendicular distance (px)",
+        "adds": "Area added",
+        "subtracts": "Area subtracted (backtracking)",
+        "distance": "Real trail",
+        "ideal": "Ideal trail",
+        "area_subject": "Subject's area",
+        "segment": "Segment",
+        "net": "Net area (metric)",
+        "uncancelled": "Without cancellation",
+        "cancelled": "Cancelled",
+    },
+}
 
 
 def _segment_geometry(pts):
@@ -72,7 +88,7 @@ def _segment_geometry(pts):
         (projections, s, d, trapezoids) where s is the coordinate along the
         ideal line, d the perpendicular distance, and trapezoids the signed
         per-step contributions whose sum equals np.trapz(d, s) — the metric.
-        Returns None for degenerate segments (zero-length ideal line).
+        None for degenerate segments (zero-length ideal line).
     """
     start, end = pts[0], pts[-1]
     ideal_vector = end - start
@@ -105,9 +121,10 @@ def _rectified_quads(s, d):
     ]
 
 
-def _collect_segments(trial, target_radius):
+def collect_segments(trial, target_radius):
     """Geometry and areas for every between-targets segment of the trial."""
-    trails = get_all_trails_between_targets(trial, target_radius, config.TARGET_RADIUS_MULTIPLIER)
+    trails = get_all_trails_between_targets(
+        trial, target_radius, config.TARGET_RADIUS_MULTIPLIER)
 
     segments = []
     for target, cursor_trail in trails:
@@ -131,17 +148,14 @@ def _collect_segments(trial, target_radius):
     return segments
 
 
-def _draw_spatial(ax, trial, subject, segments, highlighted, labels, excluded=(),
-                  big_fonts=False):
+def _draw_spatial(ax, trial, subject, segments, highlighted, labels, lang, fonts,
+                  excluded=(), big_fonts=False):
     """Draw the trial with each segment's integrated area shaded.
 
-    Segments listed in `excluded` keep their faint trail but are not shaded,
-    so one oversized segment cannot swamp the rest of the figure.
+    Segments listed in `excluded` keep their faint trail but are not shaded, so
+    one oversized segment cannot swamp the rest of the figure.
     """
-    cursor_trail = trial.get_cursor_trail_from_start()
-    cursor_x = [p.position.x for p in cursor_trail]
-    cursor_y = [p.position.y for p in cursor_trail]
-
+    _cursor_trail, cursor_x, cursor_y = trial_data.cursor_coordinates(trial)
     ax.plot(cursor_x, cursor_y, color=C_FAINT, lw=1.0, alpha=0.8, zorder=2)
 
     for segment in segments:
@@ -151,7 +165,8 @@ def _draw_spatial(ax, trial, subject, segments, highlighted, labels, excluded=()
         colors = [C_SUB if trapezoid < 0 else C_ADD for trapezoid in segment["trapezoids"]]
         ax.add_collection(PolyCollection(quads, facecolors=colors, edgecolors="none",
                                          alpha=0.35, zorder=3))
-        # ideal line: first to last cursor point of the segment, not center to center
+        # The ideal line joins the first and last cursor point of the segment,
+        # not the target centers.
         ax.plot([segment["pts"][0][0], segment["pts"][-1][0]],
                 [segment["pts"][0][1], segment["pts"][-1][1]],
                 color=C_IDEAL, lw=1.0, ls="--", alpha=0.7, zorder=4)
@@ -159,31 +174,21 @@ def _draw_spatial(ax, trial, subject, segments, highlighted, labels, excluded=()
     ax.plot(highlighted["pts"][:, 0], highlighted["pts"][:, 1],
             color=C_TRAIL, lw=1.6, zorder=5)
 
-    draw_trial_targets(ax, trial, subject.target_radius, circle_color="black",
-                       circle_alpha=0.9, circle_linewidth=1.1,
-                       text_fontsize=TARGET_FS, text_color="black",
-                       zorder_circle=6, zorder_text=7)
-    configure_trial_axes(ax, x=cursor_x, y=cursor_y, show_labels=True,
-                         xlabel=labels["xlabel"], ylabel=labels["ylabel"])
+    trial_data.draw_trial_background(ax, trial, subject, cursor_x, cursor_y, lang, fonts,
+                                     circle_linewidth=1.1, zorder_circle=6, zorder_text=7)
 
-    # legend: dashed line = ideal trajectory, light-blue shading = subject's area
     handles = [
         plt.Line2D([0], [0], color=C_IDEAL, lw=1.0, ls="--", alpha=0.7,
                    label=labels["ideal"]),
-        Patch(facecolor=C_ADD, alpha=0.35, edgecolor="none",
-              label=labels["area_subject"]),
+        Patch(facecolor=C_ADD, alpha=0.35, edgecolor="none", label=labels["area_subject"]),
     ]
-    legend_kwargs = dict(handles=handles, fontsize=LEGEND_FS,
-                         framealpha=0.9, edgecolor="#cccccc")
-    if big_fonts:
-        # move the legend outside the plot, upper-right, so it doesn't cover data
-        legend_kwargs.update(loc="upper left", bbox_to_anchor=(1.02, 1.0))
-    else:
-        legend_kwargs.update(loc="lower left")
-    ax.legend(**legend_kwargs)
+    ax.legend(**trial_data.legend_kwargs(
+        fonts, outside=big_fonts, handles=handles,
+        **({} if big_fonts else {"loc": "lower left"}),
+    ))
 
 
-def _draw_rectified(ax, segment, labels, big_fonts=False):
+def _draw_rectified(ax, segment, labels, fonts, big_fonts=False):
     s, d = segment["s"], segment["d"]
     quads = _rectified_quads(s, d)
     adding = [q for q, t in zip(quads, segment["trapezoids"]) if t >= 0]
@@ -204,12 +209,7 @@ def _draw_rectified(ax, segment, labels, big_fonts=False):
     ax.set_ylabel(labels["d_label"])
     ax.set_xlim(min(s.min(), 0) - 10, s.max() + 10)
     ax.set_ylim(-0.04 * d.max(), d.max() * 1.28)
-    legend_kwargs = dict(loc="upper left", fontsize=LEGEND_FS,
-                         framealpha=0.9, edgecolor="#cccccc")
-    if big_fonts:
-        # move the legend outside the plot, upper-right, so it doesn't cover data
-        legend_kwargs.update(bbox_to_anchor=(1.02, 1.0))
-    ax.legend(**legend_kwargs)
+    ax.legend(**trial_data.legend_kwargs(fonts, outside=big_fonts, loc="upper left"))
 
     cancelled = segment["abs_area"] - segment["net_area"]
     ax.text(0.98, 0.97,
@@ -217,36 +217,22 @@ def _draw_rectified(ax, segment, labels, big_fonts=False):
             f"{labels['net']}: {segment['net_area']:,.0f} px²\n"
             f"{labels['uncancelled']}: {segment['abs_area']:,.0f} px²\n"
             f"{labels['cancelled']}: {cancelled:,.0f} px²",
-            transform=ax.transAxes, ha="right", va="top", fontsize=LEGEND_FS,
+            transform=ax.transAxes, ha="right", va="top", fontsize=fonts.legend,
             bbox=dict(boxstyle="round", facecolor="white", edgecolor="#cccccc", alpha=0.9))
 
 
-def main(lang="en", subject_id=None, trial_id=None, segment_target=None,
-         excluded=(), show_rectified=False, big_fonts=False):
-    os.makedirs(FIGURES_DIR, exist_ok=True)
+def _resolve_highlight(segments, shown, segment_target):
+    if segment_target is None:
+        # Pick among the shaded ones so the highlight matches what is drawn.
+        return max(shown, key=lambda s: abs(s["net_area"]))
+    match = next((s for s in segments if s["target"] == segment_target), None)
+    if match is None:
+        available = ", ".join(s["target"] for s in segments)
+        raise ValueError(f"Unknown segment '{segment_target}'. Available: {available}")
+    return match
 
-    if big_fonts:
-        global LABEL_FS, TICK_FS, LEGEND_FS, TARGET_FS
-        LABEL_FS = round(LABEL_FS * FONT_SCALE)
-        TICK_FS = round(TICK_FS * FONT_SCALE)
-        LEGEND_FS = round(LEGEND_FS * FONT_SCALE)
-        TARGET_FS = round(TARGET_FS * FONT_SCALE)
 
-    df_tmt = pd.read_csv(_latest_tmt_analysis_path(), on_bad_lines="warn")
-    row = _select_trial(df_tmt, subject_id, trial_id)
-    subject_id = row["subject_id"]
-    trial_id = row["trial_id"]
-    print(f"Selected: subject={subject_id}  trial={trial_id}")
-
-    experiment = DatapruebasTMTMapper().map(RAW_EXPERIMENT_PATH)
-    subject = experiment.subjects[subject_id]
-    trial = next(t for t in subject.testing_trials if t.id == trial_id)
-
-    segments = _collect_segments(trial, subject.target_radius)
-    if not segments:
-        raise ValueError(f"No valid between-targets segments for trial {trial_id}")
-
-    excluded = tuple(excluded)
+def _filter_segments(segments, excluded):
     unknown = [name for name in excluded if not any(s["target"] == name for s in segments)]
     if unknown:
         available = ", ".join(s["target"] for s in segments)
@@ -254,85 +240,63 @@ def main(lang="en", subject_id=None, trial_id=None, segment_target=None,
     shown = [s for s in segments if s["target"] not in excluded]
     if not shown:
         raise ValueError("All segments were excluded; nothing left to shade")
+    return shown
 
-    if segment_target is not None:
-        highlighted = next(s for s in segments if s["target"] == segment_target)
-    else:
-        # pick among the shaded ones so the highlight matches what is drawn
-        highlighted = max(shown, key=lambda s: abs(s["net_area"]))
+
+def main(lang="es", subject_id=None, trial_id=None, segment_target=None,
+         excluded=(), show_rectified=False, big_fonts=False):
+    fonts = TRIAL_FONTS.scaled() if big_fonts else TRIAL_FONTS
+    labels = LABELS[lang]
+    excluded = tuple(excluded)
+
+    row, subject, trial = trial_data.load_trial(subject_id, trial_id)
+    segments = collect_segments(trial, subject.target_radius)
+    if not segments:
+        raise ValueError(f"No valid between-targets segments for trial {row['trial_id']}")
+
+    shown = _filter_segments(segments, excluded)
+    highlighted = _resolve_highlight(segments, shown, segment_target)
 
     metric = float(np.mean([s["net_area"] for s in segments]))
     n_backtracking = sum(1 for s in segments if (s["trapezoids"] < 0).any())
     print(f"area_difference_from_ideal (mean over {len(segments)} segments) = {metric:,.2f} px²")
     print(f"segments with backtracking along the ideal line: {n_backtracking}/{len(segments)}")
     if excluded:
-        # the metric above is unchanged: exclusion only affects what is drawn
+        # Exclusion only affects what is drawn; the metric above is unchanged.
         print(f"segments hidden from the plot (metric unaffected): {', '.join(excluded)}")
     print(f"highlighted segment -> {highlighted['target']}: "
           f"net={highlighted['net_area']:,.1f}  uncancelled={highlighted['abs_area']:,.1f}")
 
-    es = lang == "es"
-    labels = {
-        "xlabel": "Coordenada X (px)" if es else "X Screen Coordinate (px)",
-        "ylabel": "Coordenada Y (px)" if es else "Y Screen Coordinate (px)",
-        "s_label": "Posición sobre la recta ideal (px)" if es else "Position along ideal line (px)",
-        "d_label": "Distancia perpendicular (px)" if es else "Perpendicular distance (px)",
-        "adds": "Área que suma" if es else "Area added",
-        "subtracts": "Área que resta (retroceso)" if es else "Area subtracted (backtracking)",
-        "distance": "Trayectoria real" if es else "Real trail",
-        "ideal": "Trayectoria ideal" if es else "Ideal trail",
-        "area_subject": "Área del sujeto" if es else "Subject's area",
-        "segment": "Segmento" if es else "Segment",
-        "net": "Área neta (métrica)" if es else "Net area (metric)",
-        "uncancelled": "Sin cancelación" if es else "Without cancellation",
-        "cancelled": "Cancelada" if es else "Cancelled",
-    }
-
     if show_rectified:
         fig, (ax_spatial, ax_rectified) = plt.subplots(1, 2, figsize=(14, 7))
-        _draw_rectified(ax_rectified, highlighted, labels, big_fonts)
-        axes = (ax_spatial, ax_rectified)
+        _draw_rectified(ax_rectified, highlighted, labels, fonts, big_fonts)
+        trial_data.apply_axis_fonts(ax_rectified, fonts)
     else:
         fig, ax_spatial = plt.subplots(figsize=(7, 7))
-        axes = (ax_spatial,)
-    _draw_spatial(ax_spatial, trial, subject, segments, highlighted, labels, excluded,
-                  big_fonts)
+    _draw_spatial(ax_spatial, trial, subject, segments, highlighted, labels, lang,
+                  fonts, excluded, big_fonts)
 
-    for ax in axes:
-        ax.xaxis.label.set_fontsize(LABEL_FS)
-        ax.yaxis.label.set_fontsize(LABEL_FS)
-        ax.tick_params(axis="both", labelsize=TICK_FS)
-    # No title (per spec)
-
-    # tight_layout fights with legends anchored outside the axes (big_fonts): it
-    # shrinks the axes to fit them, squishing the trial. bbox_inches="tight" at
-    # save time already includes the external legend, so skip it there.
+    # tight_layout fights with legends anchored outside the axes (--big-fonts):
+    # it shrinks the axes to fit them, squishing the trial. bbox_inches="tight"
+    # at save time already includes the external legend.
     if not big_fonts:
         fig.tight_layout()
-    # subject and trial go in the filename so the figure is traceable to its source;
-    # variants too, so they don't overwrite each other
+
     name = "fig_tmt_area_from_ideal"
     if excluded:
         name += "_excl-" + "-".join(excluded)
     if show_rectified:
         name += "_rect"
-    name += f"_{subject_id[:8]}_{trial_id}"
+    name += f"_{trial_data.trial_slug(row)}"
     if big_fonts:
         name += "_big"
-    if es:
-        name += "_es"
-    base = os.path.join(FIGURES_DIR, name)
-    fig.savefig(f"{base}.png", dpi=DPI, bbox_inches="tight")
-    fig.savefig(f"{base}.pdf", bbox_inches="tight")  # vectorial
-    print(f"Saved -> {base}.png  (+ .pdf)")
+    save_fig(fig, f"{name}{lang_suffix(lang)}", dpi=TRIAL_DPI)
 
 
 if __name__ == "__main__":
-    import argparse
     parser = argparse.ArgumentParser(
         description="Plot area_difference_from_ideal against the ideal trajectory")
-    parser.add_argument("--lang", choices=["en", "es"], default="en",
-                        help="Idioma de ejes/leyenda (default: en)")
+    add_lang_argument(parser)
     parser.add_argument("--subject", default=None, help="Override subject_id")
     parser.add_argument("--trial", default=None, help="Override trial_id")
     parser.add_argument("--segment", default=None,

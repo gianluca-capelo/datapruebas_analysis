@@ -12,6 +12,9 @@ shap==0.48.0
 # Visualization
 matplotlib==3.9.2
 seaborn==0.13.2
+scienceplots==2.2.1
+# ffmpeg binary for the figure animations (mp4); without it they fall back to gif
+imageio-ffmpeg==0.6.0
 
 # Data validation
 pydantic==2.11.7

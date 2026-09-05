@@ -37,3 +37,9 @@ def get_latest_regression_timestamp() -> str:
     # Timestamps are YYYY-MM-DD_HHMM format, alphabetically sortable
     latest_dir = max(candidates, key=lambda d: d.name)
     return latest_dir.name
+
+
+# Regression runs reported in the thesis. The March run was split across two
+# days: tmt_k_mean landed in the first folder, every other target in the second.
+THESIS_RUN = "2026-03-07_1213"
+THESIS_RUN_K_MEAN = "2026-03-06_2028"

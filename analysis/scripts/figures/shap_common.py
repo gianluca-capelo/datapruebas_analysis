@@ -1,58 +1,65 @@
-"""Generate SHAP summary figure for all dataset/model combinations.
+"""SHAP data loading, feature labels and panel drawing shared by the SHAP figures.
 
-Produces a single multi-panel figure (2×2) that mirrors the style of
-paper_figures.ipynb Figure 3.
-
-Usage:
-    python -m analysis.scripts.generate_shap_figures            # inglés
-    python -m analysis.scripts.generate_shap_figures --lang es  # castellano
+`shap_main` (2x2 panel), `shap_panels` (one image per panel),
+`shap_accuracy_ridge` (supplementary) and `shap_k_mean_slides` (talk) all read
+the same model/dataset table and draw the same kind of horizontal bar panel.
 """
+import glob
 import os
 
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
-import scienceplots  # noqa: F401 — registers styles
+import pandas as pd
 
 from src.config import BASE_DIR
 from src.model.shap.analyze_shap_results import analyze_shap_results
 from src.model.shap.run_shap import run_shap
 
-FIGURES_DIR = os.path.join(BASE_DIR, "analysis", "figures")
+from analysis.scripts.utils import THESIS_RUN, THESIS_RUN_K_MEAN
 
-# ---------------------------------------------------------------------------
-# Style — mirrors paper_figures.ipynb Setup cell
-# ---------------------------------------------------------------------------
-plt.style.use(["science", "no-latex"])
-
-TITLE_FS = 13.5
-LABEL_FS = 16
-TICK_FS  = 14
-ANNOT_FS = 10
-
-_FIG_W  = 26
-_FIG_H  = 16
-_BASE_W = 10
-_S      = _FIG_W / _BASE_W  # 2.6
-
-_TITLE_FS = TITLE_FS * _S
-_LABEL_FS = LABEL_FS * _S
-_TICK_FS  = TICK_FS  * _S
-_ANNOT_FS = ANNOT_FS * _S
-_YTICK_FS = TICK_FS  * _S * 0.7
-
-DPI   = 300
 TOP_N = 15
 
-# Okabe-Ito task-specific colors (same as notebook)
-C_DEMO   = "#777777"  # Age (demographic)
-C_AMBER  = "#E69F00"  # CDT / K_mean
+# Panel geometry of the combined 2x2 figure. The font sizes of the notebook
+# style are scaled by the same factor as the canvas so a panel keeps its
+# proportions whether it is drawn alone or inside the grid.
+FIG_W = 26
+FIG_H = 16
+_BASE_W = 10
+_SCALE = FIG_W / _BASE_W
+
+TITLE_FS = 13.5 * _SCALE
+LABEL_FS = 16 * _SCALE
+TICK_FS = 14 * _SCALE
+ANNOT_FS = 10 * _SCALE
+YTICK_FS = 14 * _SCALE * 0.7
+
+# Okabe-Ito task colors, shared with the violin figure.
+C_DEMO = "#777777"    # Age (demographic)
+C_AMBER = "#E69F00"   # CDT / K_mean
 C_PURPLE = "#9B59B6"  # Go/No-Go
 
+XLABEL = {
+    "es": "Media |SHAP| (entre folds seleccionados)",
+    "en": "Mean |SHAP| (across selected folds)",
+}
+
+PANEL_TITLE = {
+    "es": "Importancia media |SHAP| para {name}",
+    "en": "Mean |SHAP| importance for {name}",
+}
+
 COMBINATIONS = [
-    {"label": "A. Age - SVR",                 "label_es": "A. Edad - SVR",                 "dataset": "tmt_age",      "model": "SVR",          "task": "regression", "timestamp": "2026-03-07_1213", "color": C_DEMO},
-    {"label": "B. $K_{mean}$ - RandomForestRegressor", "label_es": "B. $K_{mean}$ - RandomForestRegressor", "dataset": "tmt_k_mean",   "model": "RandomForestRegressor", "task": "regression", "timestamp": "2026-03-06_2028", "color": C_AMBER},
-    {"label": "C. Accuracy - SVR",            "label_es": "C. Accuracy - SVR",            "dataset": "tmt_accuracy", "model": "SVR",          "task": "regression", "timestamp": "2026-03-07_1213", "color": C_PURPLE},
-    {"label": "D. $c$ coefficient - Ridge",   "label_es": "D. coeficiente c - Ridge",     "dataset": "tmt_c",        "model": "Ridge",        "task": "regression", "timestamp": "2026-03-07_1213", "color": C_PURPLE},
+    {"label": "A. Age - SVR", "label_es": "A. Edad - SVR",
+     "dataset": "tmt_age", "model": "SVR", "task": "regression",
+     "timestamp": THESIS_RUN, "color": C_DEMO},
+    {"label": "B. $K_{mean}$ - RandomForestRegressor",
+     "label_es": "B. $K_{mean}$ - RandomForestRegressor",
+     "dataset": "tmt_k_mean", "model": "RandomForestRegressor", "task": "regression",
+     "timestamp": THESIS_RUN_K_MEAN, "color": C_AMBER},
+    {"label": "C. Accuracy - SVR", "label_es": "C. Accuracy - SVR",
+     "dataset": "tmt_accuracy", "model": "SVR", "task": "regression",
+     "timestamp": THESIS_RUN, "color": C_PURPLE},
+    {"label": "D. $c$ coefficient - Ridge", "label_es": "D. coeficiente c - Ridge",
+     "dataset": "tmt_c", "model": "Ridge", "task": "regression",
+     "timestamp": THESIS_RUN, "color": C_PURPLE},
 ]
 
 # Human-readable feature labels — mirrors paper_figures.ipynb FEATURE_LABELS
@@ -252,82 +259,68 @@ FEATURE_LABELS = {
 }
 
 
-def _translate_parts(label):
+def translate_parts(label: str) -> str:
     """Translate the 'Part A'/'Part B' suffix of a feature label to Spanish."""
     return label.replace("Part A", "Parte A").replace("Part B", "Parte B")
 
 
-def _compute_shap(dataset, model, timestamp, task="regression"):
-    """Compute SHAP values by re-fitting each model per LOO fold."""
-    print(f"  [{dataset}/{model}] Computing SHAP (may take several minutes)...")
+def compute_shap(combo: dict) -> pd.DataFrame:
+    """Mean |SHAP| per feature, re-fitting the model on every LOO fold."""
+    print(f"  [{combo['dataset']}/{combo['model']}] Computing SHAP (may take several minutes)...")
     explanations, _ = run_shap(
-        task=task, dataset_name=dataset,
-        timestamp=timestamp, model_name_to_explain=model,
+        task=combo["task"], dataset_name=combo["dataset"],
+        timestamp=combo["timestamp"], model_name_to_explain=combo["model"],
     )
-    return analyze_shap_results(explanations, task=task)
+    return analyze_shap_results(explanations, task=combo["task"])
 
 
-def main(lang: str = "en"):
-    os.makedirs(FIGURES_DIR, exist_ok=True)
+def shap_from_csv(combo: dict) -> pd.DataFrame:
+    """Rebuild mean |SHAP| from the per-fold CSV that run_shap already saved.
 
-    # Load / compute SHAP data for every panel
-    print("Loading SHAP data...")
-    shap_dfs = []
-    for combo in COMBINATIONS:
-        df = _compute_shap(combo["dataset"], combo["model"], combo["timestamp"], combo["task"])
-        shap_dfs.append(df)
-        print(f"  Done: {combo['label']}")
+    Same aggregation as build_mean_shap_df (mean of |value| over the folds where
+    the feature was selected; NaN = not selected), so figures can be re-styled
+    without re-fitting every LOO fold.
+    """
+    pattern = os.path.join(BASE_DIR, "results", combo["task"], combo["timestamp"],
+                           "*", combo["dataset"], f"shap_values_{combo['model']}.csv")
+    matches = glob.glob(pattern)
+    if not matches:
+        raise FileNotFoundError(
+            f"No hay SHAP guardado para {combo['dataset']}/{combo['model']}: {pattern}\n"
+            "Corré el script sin --from-csv al menos una vez.")
 
-    # ---------------------------------------------------------------------------
-    # Build 2×2 figure — mirrors paper_figures.ipynb Figure 3 cell
-    # ---------------------------------------------------------------------------
-    fig = plt.figure(figsize=(_FIG_W, _FIG_H), constrained_layout=True)
-    fig.set_constrained_layout_pads(hspace=0.12)
-    gs = gridspec.GridSpec(2, 2, figure=fig)
-
-    axes = [
-        fig.add_subplot(gs[0, 0]),
-        fig.add_subplot(gs[0, 1]),
-        fig.add_subplot(gs[1, 0]),
-        fig.add_subplot(gs[1, 1]),
-    ]
-
-    for ax, combo, shap_df in zip(axes, COMBINATIONS, shap_dfs):
-        color = combo["color"]
-        df_plot = shap_df.sort_values("mean_abs_shap", ascending=True).tail(TOP_N)
-        df_plot.index = df_plot.index.map(lambda x: FEATURE_LABELS.get(x, x))
-        if lang == "es":
-            df_plot.index = df_plot.index.map(_translate_parts)
-
-        bars = ax.barh(df_plot.index, df_plot["mean_abs_shap"], color=color, alpha=0.75)
-
-        max_val = df_plot["mean_abs_shap"].max()
-        for bar in bars:
-            w = bar.get_width()
-            ax.text(w, bar.get_y() + bar.get_height() / 2,
-                    f" {w:.3f}", va="center", ha="left",
-                    fontsize=_ANNOT_FS, color=color)
-        ax.set_xlim(0, max_val * 1.5)
-
-        label = combo["label_es"] if lang == "es" else combo["label"]
-        ax.set_title(label, fontsize=_TITLE_FS)
-        ax.set_xlabel("Mean |SHAP|", fontsize=_LABEL_FS * 0.9)
-        ax.set_ylabel("")
-        ax.tick_params(axis="y", labelsize=_YTICK_FS)
-        ax.tick_params(axis="x", labelsize=_TICK_FS)
-        ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
-
-    suffix = "_es" if lang == "es" else ""
-    save_path = os.path.join(FIGURES_DIR, f"fig3_shap_importance{suffix}.png")
-    fig.savefig(save_path, dpi=DPI, bbox_inches="tight")
-    print(f"\nSaved -> {save_path}")
+    print(f"Reusing saved SHAP values -> {matches[0]}")
+    df = pd.read_csv(matches[0]).drop(columns=["fold", "base_value"])
+    return pd.DataFrame({"mean_abs_shap": df.abs().mean(skipna=True)})
 
 
-if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser(description="Generate SHAP summary figure")
-    parser.add_argument("--lang", choices=["en", "es"], default="en",
-                        help="Idioma de los títulos (default: en)")
-    args = parser.parse_args()
-    main(args.lang)
+def top_features(shap_df: pd.DataFrame, top_n: int = TOP_N, lang: str = "en",
+                 relabel=None) -> pd.DataFrame:
+    """Top-N features sorted ascending, so barh draws the largest on top."""
+    df_plot = shap_df.sort_values("mean_abs_shap", ascending=True).tail(top_n)
+    df_plot.index = df_plot.index.map(lambda name: FEATURE_LABELS.get(name, name))
+    if relabel is not None:
+        df_plot.index = df_plot.index.map(relabel)
+    elif lang == "es":
+        df_plot.index = df_plot.index.map(translate_parts)
+    return df_plot
+
+
+def draw_shap_panel(ax, title: str, df_plot: pd.DataFrame, color: str, lang: str,
+                    xlabel: str | None = None):
+    """One horizontal mean-|SHAP| bar panel, identical across the SHAP figures."""
+    bars = ax.barh(df_plot.index, df_plot["mean_abs_shap"], color=color, alpha=0.75)
+
+    for bar in bars:
+        width = bar.get_width()
+        ax.text(width, bar.get_y() + bar.get_height() / 2, f" {width:.3f}",
+                va="center", ha="left", fontsize=ANNOT_FS, color=color)
+    ax.set_xlim(0, df_plot["mean_abs_shap"].max() * 1.5)
+
+    ax.set_title(title, fontsize=TITLE_FS)
+    ax.set_xlabel(XLABEL[lang] if xlabel is None else xlabel, fontsize=LABEL_FS * 0.9)
+    ax.set_ylabel("")
+    ax.tick_params(axis="y", labelsize=YTICK_FS)
+    ax.tick_params(axis="x", labelsize=TICK_FS)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)

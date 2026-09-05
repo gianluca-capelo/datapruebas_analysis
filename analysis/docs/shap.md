@@ -7,7 +7,7 @@ SHAP (SHapley Additive exPlanations) permite entender que features contribuyen m
 El script batch genera las figuras de importancia SHAP para todas las combinaciones configuradas:
 
 ```bash
-python -m analysis.scripts.generate_shap_figures
+python -m analysis.scripts.figures.shap_main
 ```
 
 Esto produce:
@@ -20,7 +20,7 @@ El script muestra una barra de progreso y al final un resumen de cuantas figuras
 
 ## Agregar o quitar combinaciones
 
-Las combinaciones se definen en `analysis/scripts/generate_shap_figures.py` en la lista `COMBINATIONS`:
+Las combinaciones se definen en `analysis/scripts/figures/shap_common.py` en la lista `COMBINATIONS`:
 
 ```python
 COMBINATIONS = [
@@ -55,7 +55,7 @@ Cada entrada tiene 4 claves:
    "
    ```
 
-3. **Agregar la entrada** a la lista `COMBINATIONS` en `generate_shap_figures.py`.
+3. **Agregar la entrada** a la lista `COMBINATIONS` en `figures/shap_common.py`.
 
 ### Para quitar una combinacion
 
